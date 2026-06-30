@@ -177,6 +177,7 @@ const defaultState = {
 
 let state = loadState();
 let previewZoom = 1;
+let userAdjustedPreviewZoom = false;
 
 const metaFieldDefs = [
   ["title", "工程標題"],
@@ -1118,15 +1119,18 @@ function attachGlobalEvents() {
   });
 
   document.getElementById("zoomOutBtn").addEventListener("click", () => {
+    userAdjustedPreviewZoom = true;
     setPreviewZoom(previewZoom - 0.1);
   });
 
   document.getElementById("zoomInBtn").addEventListener("click", () => {
+    userAdjustedPreviewZoom = true;
     setPreviewZoom(previewZoom + 0.1);
   });
 
   document.getElementById("zoomResetBtn").addEventListener("click", () => {
-    setPreviewZoom(1);
+    userAdjustedPreviewZoom = false;
+    setPreviewZoom(responsivePreviewZoom());
   });
 
   document.getElementById("downloadPdfBtn").addEventListener("click", downloadPdf);
@@ -1165,7 +1169,7 @@ function attachGlobalEvents() {
 }
 
 function setPreviewZoom(value) {
-  previewZoom = Math.min(1.6, Math.max(0.45, Math.round(value * 10) / 10));
+  previewZoom = Math.min(1.6, Math.max(0.38, Math.round(value * 10) / 10));
   const scaler = document.getElementById("previewScaler");
   const label = document.getElementById("zoomLabel");
   scaler.style.transform = `scale(${previewZoom})`;
@@ -1173,7 +1177,19 @@ function setPreviewZoom(value) {
   label.textContent = `${Math.round(previewZoom * 100)}%`;
 }
 
+function responsivePreviewZoom() {
+  const pageWidth = 794;
+  const viewportWidth = window.innerWidth || pageWidth;
+  if (viewportWidth > 1180) return 1;
+  const availableWidth = Math.max(340, viewportWidth - 28);
+  return Math.min(1, Math.max(0.38, availableWidth / pageWidth));
+}
+
+window.addEventListener("resize", () => {
+  if (!userAdjustedPreviewZoom) setPreviewZoom(responsivePreviewZoom());
+});
+
 renderEditor();
 attachGlobalEvents();
-setPreviewZoom(previewZoom);
+setPreviewZoom(responsivePreviewZoom());
 renderPreview();

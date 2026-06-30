@@ -637,6 +637,10 @@ textarea {
 }
 
 @media (max-width: 1180px) {
+  .app-header {
+    align-items: flex-start;
+  }
+
   .workspace {
     grid-template-columns: 1fr;
   }
@@ -648,6 +652,191 @@ textarea {
 
   .report-page {
     transform-origin: top center;
+  }
+}
+
+@media (max-width: 720px) {
+  body {
+    background: #f2f6f5;
+  }
+
+  button {
+    min-height: 42px;
+    padding: 0 12px;
+  }
+
+  .app-header {
+    position: static;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px;
+  }
+
+  .app-header h1 {
+    font-size: 22px;
+  }
+
+  .app-header p {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .toolbar {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .toolbar button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .workspace {
+    min-height: auto;
+  }
+
+  .editor {
+    padding: 14px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-section {
+    padding: 16px 0;
+  }
+
+  .panel-section h2 {
+    font-size: 16px;
+  }
+
+  .section-title-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .field-grid,
+  .weather-grid {
+    grid-template-columns: 1fr;
+  }
+
+  label {
+    font-size: 12.5px;
+  }
+
+  input,
+  textarea,
+  select {
+    min-height: 42px;
+    font-size: 16px;
+  }
+
+  .line-row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .line-row input {
+    min-width: 0;
+  }
+
+  .group-editor {
+    padding: 10px;
+    overflow-x: auto;
+  }
+
+  .group-editor h3 {
+    min-width: 420px;
+  }
+
+  .edit-table {
+    min-width: 420px;
+  }
+
+  .photo-row {
+    grid-template-columns: 58px 1fr;
+    gap: 10px;
+  }
+
+  .photo-thumb {
+    width: 58px;
+  }
+
+  .photo-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+  }
+
+  .photo-actions button {
+    flex: 1;
+  }
+
+  .preview-pane {
+    height: auto;
+    padding: 12px 10px 32px;
+    overflow-x: auto;
+  }
+
+  .preview-topbar {
+    position: static;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .zoom-controls {
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .zoom-controls button {
+    flex: 1;
+  }
+
+  #zoomLabel {
+    min-width: 42px;
+    align-self: center;
+  }
+
+  .preview-scaler {
+    transform-origin: top left;
+  }
+
+  .report-preview {
+    justify-content: start;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 430px) {
+  .app-header {
+    padding: 12px;
+  }
+
+  .toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .editor {
+    padding: 12px;
+  }
+
+  .line-row {
+    grid-template-columns: 1fr;
+  }
+
+  .line-row .row-btn {
+    width: 100%;
+  }
+
+  .section-title-row .small-btn {
+    width: 100%;
+  }
+
+  .preview-pane {
+    padding-inline: 8px;
   }
 }
 
