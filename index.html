@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>工地日報產生器</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div>
+          <h1>工地日報產生器</h1>
+          <p>依參考 PDF 版型建立 A4 日報，可填資料、放照片並下載 PDF。</p>
+        </div>
+        <div class="toolbar" aria-label="工具列">
+          <button id="downloadPdfBtn" type="button" title="下載或另存成 PDF">下載 PDF</button>
+          <button id="saveBtn" type="button" title="下載 Excel 可開啟的 CSV 資料">下載 CSV</button>
+          <button id="importBtn" type="button" title="匯入 CSV 或舊版 JSON 備份">匯入資料</button>
+          <button id="resetBtn" type="button" title="回復預設範本">重設</button>
+          <input id="importFile" type="file" accept=".csv,text/csv,application/json" hidden />
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="editor" aria-label="報表輸入區">
+          <section class="panel-section">
+            <h2>基本資料</h2>
+            <div id="metaFields" class="field-grid"></div>
+            <div class="weather-grid">
+              <label>
+                上午天氣
+                <select id="morningWeather">
+                  <option value="晴">晴</option>
+                  <option value="陰">陰</option>
+                  <option value="雨">雨</option>
+                  <option value="颱風">颱風</option>
+                </select>
+              </label>
+              <label>
+                下午天氣
+                <select id="afternoonWeather">
+                  <option value="晴">晴</option>
+                  <option value="陰">陰</option>
+                  <option value="雨">雨</option>
+                  <option value="颱風">颱風</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="panel-section">
+            <div class="section-title-row">
+              <h2>本日工作</h2>
+              <button class="small-btn" id="addTodayWork" type="button">新增</button>
+            </div>
+            <div id="todayWorkList" class="line-list"></div>
+          </section>
+
+          <section class="panel-section">
+            <div class="section-title-row">
+              <h2>明日工作</h2>
+              <button class="small-btn" id="addTomorrowWork" type="button">新增</button>
+            </div>
+            <div id="tomorrowWorkList" class="line-list"></div>
+          </section>
+
+          <section class="panel-section">
+            <div class="section-title-row">
+              <h2>本日出工數</h2>
+              <button class="small-btn" id="toggleZeroLaborRows" type="button">顯示零工數</button>
+            </div>
+            <div id="laborEditor" class="data-editor"></div>
+          </section>
+
+          <section class="panel-section">
+            <h2>本日進場材料</h2>
+            <div id="materialEditor" class="data-editor"></div>
+          </section>
+
+          <section class="panel-section">
+            <h2>記事與簽核</h2>
+            <label>
+              重要記事
+              <textarea id="notes" rows="4"></textarea>
+            </label>
+            <label>
+              交辦事項
+              <textarea id="instructions" rows="4"></textarea>
+            </label>
+            <div class="weather-grid">
+              <label>
+                工地主任
+                <input id="siteManager" type="text" />
+              </label>
+              <label>
+                製表
+                <input id="preparedBy" type="text" />
+              </label>
+            </div>
+          </section>
+
+          <section class="panel-section">
+            <div class="section-title-row">
+              <h2>施工照片</h2>
+              <button class="small-btn" id="addPhoto" type="button">新增照片</button>
+            </div>
+            <p class="section-hint">上傳後會自動壓縮成適合 A4 報表的照片大小。</p>
+            <div id="photoEditor" class="photo-editor"></div>
+          </section>
+        </aside>
+
+        <section class="preview-pane" aria-label="報表預覽">
+          <div class="preview-topbar">
+            <span>A4 預覽</span>
+            <div class="zoom-controls" aria-label="預覽縮放">
+              <button id="zoomOutBtn" class="icon-btn" type="button" title="縮小預覽">-</button>
+              <span id="zoomLabel">100%</span>
+              <button id="zoomInBtn" class="icon-btn" type="button" title="放大預覽">+</button>
+              <button id="zoomResetBtn" class="small-btn" type="button" title="重設預覽大小">重設</button>
+            </div>
+          </div>
+          <div id="previewScaler" class="preview-scaler">
+            <div id="reportPreview" class="report-preview"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
