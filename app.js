@@ -40,6 +40,7 @@ const defaultState = {
   constructionItems: [
     ["", "", "", "", "", ""]
   ],
+  constructionSafetyNotes: "",
   laborGroups: [
     {
       title: "契約工",
@@ -289,6 +290,7 @@ function renderEditor() {
   document.getElementById("afternoonWeather").value = state.weather.afternoon;
   document.getElementById("notes").value = state.notes;
   document.getElementById("instructions").value = state.instructions;
+  document.getElementById("constructionSafetyNotes").value = state.constructionSafetyNotes || "";
   document.getElementById("siteManager").value = state.siteManager;
   document.getElementById("preparedBy").value = state.preparedBy;
   updateZeroLaborToggle();
@@ -671,16 +673,24 @@ function cumulativeWithToday(todayValue, totalValue) {
 }
 
 function parseQuantity(value) {
-  const text = String(value ?? "").trim().replaceAll(",", "");
+  const text = normalizeQuantityText(value);
   if (!text) return 0;
   const number = Number(text);
   return Number.isFinite(number) ? number : null;
 }
 
 function decimalPlaces(value) {
-  const text = String(value ?? "").trim().replaceAll(",", "");
+  const text = normalizeQuantityText(value);
   const decimal = text.split(".")[1];
   return decimal ? decimal.length : 0;
+}
+
+function normalizeQuantityText(value) {
+  return String(value ?? "")
+    .trim()
+    .replace(/[０-９]/g, (char) => String(char.charCodeAt(0) - 0xff10))
+    .replace(/[．。]/g, ".")
+    .replace(/[，,]/g, "");
 }
 
 function formatQuantity(value, decimals) {
@@ -886,7 +896,7 @@ function constructionFixedSectionsBlock() {
       <p>1. 實施勤前教育(含工地預防災變及危害告知)：□有　□無</p>
       <p>2. 確認新進勞工是否提報勞工保險(或其他商業保險)資料及安全衛生教育訓練紀錄：□有　□無</p>
       <p>3. 檢查勞工個人防護具：□有　□無</p>
-      <p>(二)其他事項：${escapeHtml(state.notes)}</p>
+      <p>(二)其他事項：${escapeHtml(state.constructionSafetyNotes || "")}</p>
     </div>
     <div class="construction-fill-row">六、施工取樣試驗紀錄：</div>
     <div class="construction-fill-row">七、通知協力廠商辦理事項：${escapeHtml(state.instructions)}</div>
@@ -963,7 +973,11 @@ function flattenLaborRows() {
 }
 
 function quantityRowHasAnyValue(row) {
-  return parseQuantity(row?.[1]) !== 0 || parseQuantity(row?.[2]) !== 0;
+  const todayText = normalizeQuantityText(row?.[1]);
+  if (!todayText) return false;
+  const today = parseQuantity(todayText);
+  if (today === null) return true;
+  return today !== 0;
 }
 
 function rowUnit(row, fallbackName = "") {
@@ -1289,6 +1303,7 @@ function buildCsvRows() {
   (state.constructionItems || []).forEach((row) => {
     rows.push(["施工日誌-按圖施工概況", row[0] || "", row[1] || "", row[2] || "", row[3] || "", row[4] || "", row[5] || ""]);
   });
+  rows.push(["施工日誌-工安衛生與行政事項", "其他事項", "", "", "", "", state.constructionSafetyNotes || ""]);
 
   state.laborGroups.forEach((group) => {
     group.rows.forEach((row) => {
@@ -1416,6 +1431,8 @@ function stateFromCsv(rows) {
       workTomorrow[csvRowIndex(item, workTomorrow.length)] = note;
     } else if (category === "施工日誌-按圖施工概況") {
       constructionItems.push([item, unit, contract, today, total, note]);
+    } else if (category === "施工日誌-工安衛生與行政事項" && item === "其他事項") {
+      nextState.constructionSafetyNotes = note;
     } else if (category.startsWith("本日出工數-")) {
       pushCsvGroupRow(laborGroups, category.replace("本日出工數-", ""), item, today, total, unit);
     } else if (category.startsWith("本日進場材料-")) {
@@ -1480,6 +1497,9 @@ function attachGlobalEvents() {
   });
   wireInput(document.getElementById("instructions"), (value) => {
     state.instructions = value;
+  });
+  wireInput(document.getElementById("constructionSafetyNotes"), (value) => {
+    state.constructionSafetyNotes = value;
   });
   wireInput(document.getElementById("siteManager"), (value) => {
     state.siteManager = value;
