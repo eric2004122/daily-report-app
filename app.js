@@ -178,6 +178,7 @@ const defaultState = {
 let state = loadState();
 let previewZoom = 1;
 let userAdjustedPreviewZoom = false;
+let previewMode = "daily";
 
 const metaFieldDefs = [
   ["title", "工程標題"],
@@ -645,6 +646,11 @@ function shouldShowLaborRow(row) {
 }
 
 function renderPreview() {
+  if (previewMode === "constructionLog") {
+    renderConstructionLogPreview();
+    return;
+  }
+
   const reportLaborGroups = state.laborGroups
     .map((group) => ({ ...group, rows: group.rows.filter((row) => shouldShowLaborRow(row)) }))
     .filter((group) => group.rows.length);
@@ -672,12 +678,203 @@ function renderPreview() {
       .join("")}`;
 }
 
+function renderConstructionLogPreview() {
+  document.getElementById("reportPreview").innerHTML = `
+    <article class="report-page construction-log-page">
+      ${constructionLogHtml()}
+    </article>`;
+}
+
+function constructionLogHtml() {
+  const date = rocDateParts(state.meta.reportDate);
+  const permit = splitPermitNo(state.meta.permitNo);
+  const constructionRows = buildConstructionItemRows();
+  const materialRows = buildConstructionMaterialRows();
+  const peopleMachineRows = buildPeopleMachineRows();
+
+  return `
+    <div class="construction-log-head">
+      <div></div>
+      <h2>建築物施工日誌</h2>
+      <strong>B14-4</strong>
+    </div>
+    <div class="construction-log-code">表報編號：</div>
+    <div class="construction-log-meta">
+      <span>本日天氣：上午：${escapeHtml(state.weather.morning)}</span>
+      <span>下午：${escapeHtml(state.weather.afternoon)}</span>
+      <span>填表日期：${escapeHtml(date.year)}年　${escapeHtml(date.month)}月　${escapeHtml(date.day)}日 (星期${escapeHtml(date.weekday)})</span>
+    </div>
+    <table class="construction-info-table">
+      <tbody>
+        <tr><th>工程名稱</th><td>${escapeHtml(state.meta.projectName)}</td><th>承造人</th><td>${escapeHtml(state.meta.contractor)}</td></tr>
+        <tr><th>建雜照號碼</th><td>${escapeHtml(permit.prefix)}</td><th>字第</th><td>${escapeHtml(permit.number)}號</td></tr>
+        <tr><th>開工日期</th><td>${escapeHtml(state.meta.startDate)}</td><th>核定竣工日期</th><td>${escapeHtml(state.meta.completionDate)}</td></tr>
+        <tr><th>預定進度(%)</th><td>${escapeHtml(state.meta.plannedProgress)}</td><th>實際進度(%)</th><td>${escapeHtml(state.meta.actualProgress)}</td></tr>
+      </tbody>
+    </table>
+    <div class="construction-section-title">一、依施工計畫書執行按圖施工概況（含約定之重要施工項目及完成數量等）：</div>
+    <table class="construction-log-table">
+      <thead><tr><th>施工項目</th><th>單位</th><th>契約數量</th><th>本日完成數量</th><th>累計完成數量</th><th>備註</th></tr></thead>
+      <tbody>${constructionRows.map(constructionRowHtml).join("")}</tbody>
+    </table>
+    <div class="construction-section-title">二、工地材料管理概況（含約定之重要材料使用狀況及數量等）：</div>
+    <table class="construction-log-table">
+      <thead><tr><th>材料名稱</th><th>單位</th><th>契約數量</th><th>本日使用數量</th><th>累計使用數量</th><th>備註</th></tr></thead>
+      <tbody>${materialRows.map(constructionRowHtml).join("")}</tbody>
+    </table>
+    <div class="construction-section-title">三、工地人員及機具管理（含約定之出工人數及機具使用情形及數量）：</div>
+    <table class="construction-people-table">
+      <thead><tr><th>工別</th><th>本日人數</th><th>累計人數</th><th>機具名稱</th><th>本日使用數量</th><th>累計使用數量</th></tr></thead>
+      <tbody>${peopleMachineRows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody>
+    </table>
+    <div class="construction-text-row">四、本日施工項目是否有須依「營造業專業工程特定施工項目應置之技術士種類、比率或人數標準表」規定應設置之技術士：</div>
+    <div class="construction-safety">
+      <p>五、工地職業安全衛生事項之督導、公共環境與安全之維護及其他工地行政事務(註3)：</p>
+      <p>(一)施工前檢查事項：</p>
+      <p>1. 實施勤前教育(含工地預防災變及危害告知)：□有　□無</p>
+      <p>2. 確認新進勞工是否提報勞工保險(或其他商業保險)資料及安全衛生教育訓練紀錄：□有　□無</p>
+      <p>3. 檢查勞工個人防護具：□有　□無</p>
+      <p>(二)其他事項：${escapeHtml(state.notes)}</p>
+    </div>
+    <div class="construction-fill-row">六、施工取樣試驗紀錄：</div>
+    <div class="construction-fill-row">七、通知協力廠商辦理事項：${escapeHtml(state.instructions)}</div>
+    <div class="construction-important-row">八、重要事項紀錄(註4)：${escapeHtml(state.notes)}</div>
+    <div class="construction-sign-row">簽章：【工地主任】(註5)：${escapeHtml(state.siteManager)}</div>
+    <div class="construction-notes">
+      <p>註：1. 依營造業法第三十二條第一項第二款規定，工地主任應按日填報施工日誌；本表檢送地方主管建築機關備查。</p>
+      <p>2. 本施工日誌格式僅供參考，原則應包含上開欄位，各主管建築機關得依工程性質及實際需要增訂之。</p>
+      <p>3. 施工前檢查事項所列工作應由依職業安全衛生管理辦法規定所置職業安全衛生管理人員於每日施工前辦理。</p>
+      <p>4. 重要事項紀錄包含起造人及監造人指示、工地緊急異常狀況通報處理情形及其他重要事項。</p>
+      <p>5. 本工程依營造業法規定須置工地主任者，由工地主任簽章。</p>
+    </div>`;
+}
+
+function constructionRowHtml(row) {
+  return `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`;
+}
+
+function rocDateParts(value) {
+  const match = String(value ?? "").match(/(\d+)\D+(\d+)\D+(\d+).*?星期?([日一二三四五六])?/);
+  if (!match) return { year: "", month: "", day: "", weekday: "" };
+  return {
+    year: match[1] || "",
+    month: match[2] || "",
+    day: match[3] || "",
+    weekday: match[4] || ""
+  };
+}
+
+function splitPermitNo(value) {
+  const text = String(value ?? "").trim();
+  const match = text.match(/^(.*?字第)\s*(.*?)\s*號?$/);
+  if (!match) return { prefix: text, number: "" };
+  return {
+    prefix: match[1].replace("字第", "").trim(),
+    number: match[2].trim()
+  };
+}
+
+function buildConstructionItemRows() {
+  const quantityRows = flattenLaborRows().filter(({ row, group }) => !group.title.includes("機具") && quantityRowHasAnyValue(row));
+  const rows = state.workToday
+    .filter((line) => String(line).trim())
+    .slice(0, 5)
+    .map((line) => {
+      const item = cleanConstructionName(line);
+      const matched = quantityRows.find(({ row }) => item && row[0].includes(item));
+      const source = matched?.row || ["", "", ""];
+      return [item, guessUnit(item || source[0]), "", source[1] || "", source[2] ? cumulativeWithToday(source[1], source[2]) : "", ""];
+    });
+
+  if (!rows.length) {
+    quantityRows.slice(0, 5).forEach(({ row }) => {
+      rows.push([cleanConstructionName(row[0]), guessUnit(row[0]), "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
+    });
+  }
+
+  return padRows(rows, 5, 6);
+}
+
+function buildConstructionMaterialRows() {
+  const rows = state.materialGroups
+    .flatMap((group) => group.rows)
+    .filter((row) => quantityRowHasAnyValue(row))
+    .slice(0, 5)
+    .map((row) => [cleanMaterialName(row[0]), guessUnit(row[0]), "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
+  return padRows(rows, 5, 6);
+}
+
+function buildPeopleMachineRows() {
+  const workerRows = flattenLaborRows()
+    .filter(({ row, group }) => !group.title.includes("機具") && quantityRowHasAnyValue(row))
+    .map(({ row }) => [cleanLaborName(row[0]), row[1], cumulativeWithToday(row[1], row[2])]);
+  const machineRows = flattenLaborRows()
+    .filter(({ row, group }) => group.title.includes("機具") && quantityRowHasAnyValue(row))
+    .map(({ row }) => [cleanLaborName(row[0]), row[1], cumulativeWithToday(row[1], row[2])]);
+  const count = Math.max(workerRows.length, machineRows.length, 5);
+  const rows = [];
+
+  for (let index = 0; index < count; index += 1) {
+    const worker = workerRows[index] || ["", "", ""];
+    const machine = machineRows[index] || ["", "", ""];
+    rows.push([worker[0], worker[1], worker[2], machine[0], machine[1], machine[2]]);
+  }
+
+  return rows.slice(0, 5);
+}
+
+function flattenLaborRows() {
+  return state.laborGroups.flatMap((group) => group.rows.map((row) => ({ group, row })));
+}
+
+function quantityRowHasAnyValue(row) {
+  return parseQuantity(row?.[1]) !== 0 || parseQuantity(row?.[2]) !== 0;
+}
+
+function padRows(rows, count, columns) {
+  const nextRows = [...rows];
+  while (nextRows.length < count) nextRows.push(Array(columns).fill(""));
+  return nextRows;
+}
+
+function cleanConstructionName(value) {
+  return String(value ?? "")
+    .split(/[：:,-]/)[0]
+    .replace(/第?\d+.*$/, "")
+    .replace(/[（(].*?[）)]/g, "")
+    .trim();
+}
+
+function cleanMaterialName(value) {
+  return String(value ?? "").replace(/[（(].*?[）)]/g, "").trim();
+}
+
+function cleanLaborName(value) {
+  return String(value ?? "").replace(/[（(].*?[）)]/g, "").trim();
+}
+
+function guessUnit(value) {
+  const text = String(value ?? "");
+  const match = text.match(/[（(]([^）)]+)[）)]/);
+  if (match) return match[1];
+  if (text.includes("連續壁")) return "單元";
+  if (text.includes("混凝土")) return "M³";
+  if (text.includes("鐵板")) return "片";
+  if (text.includes("續接器")) return "個";
+  return "";
+}
+
 function updateZeroLaborToggle() {
   const button = document.getElementById("toggleZeroLaborRows");
   if (!button) return;
   const isShowing = Boolean(state.displayOptions?.showZeroLaborRows);
   button.textContent = isShowing ? "隱藏零工數" : "顯示零工數";
   button.setAttribute("aria-pressed", String(isShowing));
+}
+
+function updatePreviewModeToggle() {
+  document.getElementById("dailyReportModeBtn").setAttribute("aria-pressed", String(previewMode === "daily"));
+  document.getElementById("constructionLogModeBtn").setAttribute("aria-pressed", String(previewMode === "constructionLog"));
 }
 
 function buildMainReportBlocks(reportLaborGroups, reportMaterialGroups) {
@@ -1133,6 +1330,18 @@ function attachGlobalEvents() {
     setPreviewZoom(responsivePreviewZoom());
   });
 
+  document.getElementById("dailyReportModeBtn").addEventListener("click", () => {
+    previewMode = "daily";
+    updatePreviewModeToggle();
+    renderPreview();
+  });
+
+  document.getElementById("constructionLogModeBtn").addEventListener("click", () => {
+    previewMode = "constructionLog";
+    updatePreviewModeToggle();
+    renderPreview();
+  });
+
   document.getElementById("downloadPdfBtn").addEventListener("click", downloadPdf);
 
   document.getElementById("saveBtn").addEventListener("click", downloadCsv);
@@ -1191,5 +1400,6 @@ window.addEventListener("resize", () => {
 
 renderEditor();
 attachGlobalEvents();
+updatePreviewModeToggle();
 setPreviewZoom(responsivePreviewZoom());
 renderPreview();

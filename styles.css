@@ -636,6 +636,208 @@ textarea {
   padding: 1mm;
 }
 
+.preview-mode-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mode-btn {
+  min-height: 30px;
+  padding: 0 12px;
+  border-color: var(--border-strong);
+  background: #fff;
+  color: #253131;
+  box-shadow: none;
+  font-size: 13px;
+}
+
+.mode-btn[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.construction-log-page {
+  display: block;
+  padding: 17mm 13mm 10mm;
+  font-family: "DFKai-SB", "BiauKai", "KaiTi", "PMingLiU", serif;
+  letter-spacing: 0;
+}
+
+.construction-log-page table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.construction-log-head {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  align-items: end;
+  margin-bottom: 2.5mm;
+}
+
+.construction-log-head h2 {
+  margin: 0;
+  text-align: center;
+  font-size: 18pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.construction-log-head strong {
+  text-align: right;
+  font-size: 18pt;
+}
+
+.construction-log-code,
+.construction-log-meta {
+  font-size: 12pt;
+  line-height: 1.25;
+}
+
+.construction-log-code {
+  margin-left: 18mm;
+  margin-bottom: 2mm;
+}
+
+.construction-log-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2.4fr;
+  gap: 6mm;
+  margin-bottom: 0.8mm;
+}
+
+.construction-info-table,
+.construction-log-table,
+.construction-people-table {
+  border: 2pt solid #000;
+}
+
+.construction-info-table th,
+.construction-info-table td,
+.construction-log-table th,
+.construction-log-table td,
+.construction-people-table th,
+.construction-people-table td {
+  border: 0.7pt solid #000;
+  padding: 0.55mm 1mm;
+  font-size: 12pt;
+  line-height: 1.12;
+  text-align: center;
+  vertical-align: middle;
+  font-weight: 400;
+}
+
+.construction-info-table th {
+  width: 24%;
+}
+
+.construction-info-table td {
+  width: 26%;
+}
+
+.construction-section-title,
+.construction-text-row,
+.construction-fill-row,
+.construction-important-row,
+.construction-sign-row,
+.construction-safety {
+  border-left: 2pt solid #000;
+  border-right: 2pt solid #000;
+  border-bottom: 2pt solid #000;
+  padding: 0.7mm 1mm;
+  font-size: 12pt;
+  line-height: 1.18;
+}
+
+.construction-section-title {
+  border-top: 0;
+  font-weight: 700;
+}
+
+.construction-log-table th:nth-child(1) {
+  width: 25%;
+}
+
+.construction-log-table th:nth-child(2) {
+  width: 7%;
+}
+
+.construction-log-table th:nth-child(3) {
+  width: 12%;
+}
+
+.construction-log-table th:nth-child(4) {
+  width: 22%;
+}
+
+.construction-log-table th:nth-child(5) {
+  width: 17%;
+}
+
+.construction-log-table th:nth-child(6) {
+  width: 17%;
+}
+
+.construction-log-table td {
+  height: 6.1mm;
+}
+
+.construction-people-table th,
+.construction-people-table td {
+  height: 7mm;
+}
+
+.construction-people-table th:nth-child(1) {
+  width: 12%;
+}
+
+.construction-people-table th:nth-child(2) {
+  width: 24%;
+}
+
+.construction-people-table th:nth-child(3) {
+  width: 20%;
+}
+
+.construction-people-table th:nth-child(4) {
+  width: 25%;
+}
+
+.construction-people-table th:nth-child(5),
+.construction-people-table th:nth-child(6) {
+  width: 9.5%;
+}
+
+.construction-safety {
+  min-height: 38mm;
+}
+
+.construction-safety p,
+.construction-notes p {
+  margin: 0 0 1mm;
+}
+
+.construction-fill-row {
+  min-height: 7mm;
+}
+
+.construction-important-row {
+  min-height: 12mm;
+}
+
+.construction-sign-row {
+  min-height: 8mm;
+}
+
+.construction-notes {
+  margin-top: 7mm;
+  font-size: 10pt;
+  line-height: 1.45;
+}
+
 @media (max-width: 1180px) {
   .app-header {
     align-items: flex-start;
@@ -784,6 +986,16 @@ textarea {
     align-items: stretch;
     gap: 8px;
     margin-bottom: 12px;
+  }
+
+  .preview-mode-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mode-btn {
+    width: 100%;
+    min-height: 38px;
   }
 
   .zoom-controls {

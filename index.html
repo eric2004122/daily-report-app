@@ -112,7 +112,10 @@
 
         <section class="preview-pane" aria-label="報表預覽">
           <div class="preview-topbar">
-            <span>A4 預覽</span>
+            <div class="preview-mode-controls" aria-label="預覽類型">
+              <button id="dailyReportModeBtn" class="mode-btn" type="button" aria-pressed="true">日報</button>
+              <button id="constructionLogModeBtn" class="mode-btn" type="button" aria-pressed="false">施工日誌</button>
+            </div>
             <div class="zoom-controls" aria-label="預覽縮放">
               <button id="zoomOutBtn" class="icon-btn" type="button" title="縮小預覽">-</button>
               <span id="zoomLabel">100%</span>
