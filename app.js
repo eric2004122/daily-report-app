@@ -679,23 +679,58 @@ function renderPreview() {
 }
 
 function renderConstructionLogPreview() {
-  document.getElementById("reportPreview").innerHTML = `
-    <article class="report-page construction-log-page">
-      ${constructionLogHtml()}
-    </article>`;
+  const pages = constructionLogPages();
+  document.getElementById("reportPreview").innerHTML = pages
+    .map((page, index) => `
+      <article class="report-page construction-log-page">
+        ${constructionLogHtml(page, index + 1, pages.length)}
+      </article>`)
+    .join("");
 }
 
-function constructionLogHtml() {
-  const date = rocDateParts(state.meta.reportDate);
-  const permit = splitPermitNo(state.meta.permitNo);
+function constructionLogPages() {
   const constructionRows = buildConstructionItemRows();
   const materialRows = buildConstructionMaterialRows();
   const peopleMachineRows = buildPeopleMachineRows();
+  const pages = [
+    {
+      isFirst: true,
+      constructionRows: padRows(constructionRows.slice(0, 5), 5, 6),
+      materialRows: padRows(materialRows.slice(0, 5), 5, 6),
+      peopleMachineRows: padRows(peopleMachineRows.slice(0, 5), 5, 6)
+    }
+  ];
+  let constructionIndex = 5;
+  let materialIndex = 5;
+  let peopleIndex = 5;
+
+  while (
+    constructionIndex < constructionRows.length ||
+    materialIndex < materialRows.length ||
+    peopleIndex < peopleMachineRows.length
+  ) {
+    pages.push({
+      isFirst: false,
+      constructionRows: constructionRows.slice(constructionIndex, constructionIndex + 12),
+      materialRows: materialRows.slice(materialIndex, materialIndex + 12),
+      peopleMachineRows: peopleMachineRows.slice(peopleIndex, peopleIndex + 12)
+    });
+    constructionIndex += 12;
+    materialIndex += 12;
+    peopleIndex += 12;
+  }
+
+  return pages;
+}
+
+function constructionLogHtml(page, pageNumber, totalPages) {
+  const date = rocDateParts(state.meta.reportDate);
+  const permit = splitPermitNo(state.meta.permitNo);
 
   return `
     <div class="construction-log-head">
       <div></div>
-      <h2>建築物施工日誌</h2>
+      <h2>建築物施工日誌${page.isFirst ? "" : "（續）"}</h2>
       <strong>B14-4</strong>
     </div>
     <div class="construction-log-code">表報編號：</div>
@@ -715,19 +750,19 @@ function constructionLogHtml() {
     <div class="construction-section-title">一、依施工計畫書執行按圖施工概況（含約定之重要施工項目及完成數量等）：</div>
     <table class="construction-log-table">
       <thead><tr><th>施工項目</th><th>單位</th><th>契約數量</th><th>本日完成數量</th><th>累計完成數量</th><th>備註</th></tr></thead>
-      <tbody>${constructionRows.map(constructionRowHtml).join("")}</tbody>
+      <tbody>${page.constructionRows.map(constructionRowHtml).join("")}</tbody>
     </table>
     <div class="construction-section-title">二、工地材料管理概況（含約定之重要材料使用狀況及數量等）：</div>
     <table class="construction-log-table">
       <thead><tr><th>材料名稱</th><th>單位</th><th>契約數量</th><th>本日使用數量</th><th>累計使用數量</th><th>備註</th></tr></thead>
-      <tbody>${materialRows.map(constructionRowHtml).join("")}</tbody>
+      <tbody>${page.materialRows.map(constructionRowHtml).join("")}</tbody>
     </table>
     <div class="construction-section-title">三、工地人員及機具管理（含約定之出工人數及機具使用情形及數量）：</div>
     <table class="construction-people-table">
       <thead><tr><th>工別</th><th>本日人數</th><th>累計人數</th><th>機具名稱</th><th>本日使用數量</th><th>累計使用數量</th></tr></thead>
-      <tbody>${peopleMachineRows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody>
+      <tbody>${page.peopleMachineRows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody>
     </table>
-    <div class="construction-text-row">四、本日施工項目是否有須依「營造業專業工程特定施工項目應置之技術士種類、比率或人數標準表」規定應設置之技術士：</div>
+    ${page.isFirst ? `<div class="construction-text-row">四、本日施工項目是否有須依「營造業專業工程特定施工項目應置之技術士種類、比率或人數標準表」規定應設置之技術士：</div>
     <div class="construction-safety">
       <p>五、工地職業安全衛生事項之督導、公共環境與安全之維護及其他工地行政事務(註3)：</p>
       <p>(一)施工前檢查事項：</p>
@@ -746,7 +781,7 @@ function constructionLogHtml() {
       <p>3. 施工前檢查事項所列工作應由依職業安全衛生管理辦法規定所置職業安全衛生管理人員於每日施工前辦理。</p>
       <p>4. 重要事項紀錄包含起造人及監造人指示、工地緊急異常狀況通報處理情形及其他重要事項。</p>
       <p>5. 本工程依營造業法規定須置工地主任者，由工地主任簽章。</p>
-    </div>`;
+    </div>` : `<div class="construction-continuation-note">續頁資料承前頁。第 ${pageNumber} / ${totalPages} 頁</div>`}`;
 }
 
 function constructionRowHtml(row) {
@@ -778,7 +813,6 @@ function buildConstructionItemRows() {
   const quantityRows = flattenLaborRows().filter(({ row, group }) => !group.title.includes("機具") && quantityRowHasAnyValue(row));
   const rows = state.workToday
     .filter((line) => String(line).trim())
-    .slice(0, 5)
     .map((line) => {
       const item = cleanConstructionName(line);
       const matched = quantityRows.find(({ row }) => item && row[0].includes(item));
@@ -787,21 +821,19 @@ function buildConstructionItemRows() {
     });
 
   if (!rows.length) {
-    quantityRows.slice(0, 5).forEach(({ row }) => {
+    quantityRows.forEach(({ row }) => {
       rows.push([cleanConstructionName(row[0]), guessUnit(row[0]), "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
     });
   }
 
-  return padRows(rows, 5, 6);
+  return rows;
 }
 
 function buildConstructionMaterialRows() {
-  const rows = state.materialGroups
+  return state.materialGroups
     .flatMap((group) => group.rows)
     .filter((row) => quantityRowHasAnyValue(row))
-    .slice(0, 5)
     .map((row) => [cleanMaterialName(row[0]), guessUnit(row[0]), "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
-  return padRows(rows, 5, 6);
 }
 
 function buildPeopleMachineRows() {
@@ -820,7 +852,7 @@ function buildPeopleMachineRows() {
     rows.push([worker[0], worker[1], worker[2], machine[0], machine[1], machine[2]]);
   }
 
-  return rows.slice(0, 5);
+  return rows;
 }
 
 function flattenLaborRows() {

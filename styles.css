@@ -838,6 +838,15 @@ textarea {
   line-height: 1.45;
 }
 
+.construction-continuation-note {
+  border-left: 2pt solid #000;
+  border-right: 2pt solid #000;
+  border-bottom: 2pt solid #000;
+  padding: 2mm 1mm;
+  font-size: 12pt;
+  text-align: right;
+}
+
 @media (max-width: 1180px) {
   .app-header {
     align-items: flex-start;
