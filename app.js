@@ -24,7 +24,8 @@ const defaultState = {
     afternoon: "晴"
   },
   displayOptions: {
-    showZeroLaborRows: false
+    showZeroLaborRows: false,
+    showZeroMaterialRows: false
   },
   workToday: [
     "連續壁第41單元挖掘及自主檢查改善",
@@ -287,6 +288,7 @@ function renderEditor() {
   document.getElementById("siteManager").value = state.siteManager;
   document.getElementById("preparedBy").value = state.preparedBy;
   updateZeroLaborToggle();
+  updateZeroMaterialToggle();
 }
 
 function renderMetaEditor() {
@@ -641,7 +643,7 @@ function shouldShowLaborRow(row) {
 }
 
 function shouldShowMaterialRow(row) {
-  if (state.displayOptions?.showZeroLaborRows) return row.some((value) => String(value ?? "").trim() !== "");
+  if (state.displayOptions?.showZeroMaterialRows) return row.some((value) => String(value ?? "").trim() !== "");
   return shouldShowQuantityRow(row);
 }
 
@@ -953,7 +955,15 @@ function updateZeroLaborToggle() {
   const button = document.getElementById("toggleZeroLaborRows");
   if (!button) return;
   const isShowing = Boolean(state.displayOptions?.showZeroLaborRows);
-  button.textContent = isShowing ? "隱藏零數量" : "顯示零數量";
+  button.textContent = isShowing ? "隱藏零工數" : "顯示零工數";
+  button.setAttribute("aria-pressed", String(isShowing));
+}
+
+function updateZeroMaterialToggle() {
+  const button = document.getElementById("toggleZeroMaterialRows");
+  if (!button) return;
+  const isShowing = Boolean(state.displayOptions?.showZeroMaterialRows);
+  button.textContent = isShowing ? "隱藏零材料" : "顯示零材料";
   button.setAttribute("aria-pressed", String(isShowing));
 }
 
@@ -1046,7 +1056,7 @@ function blankGridBlock(gridClass, columns, maxRowsPerTable) {
 }
 
 function fillShortDailyReport(blocks, footerBlocks) {
-  if (state.displayOptions?.showZeroLaborRows) return [...blocks, ...footerBlocks];
+  if (state.displayOptions?.showZeroLaborRows && state.displayOptions?.showZeroMaterialRows) return [...blocks, ...footerBlocks];
 
   const measurer = document.createElement("div");
   measurer.className = "pagination-measurer";
@@ -1429,6 +1439,16 @@ function attachGlobalEvents() {
     };
     persist();
     updateZeroLaborToggle();
+    renderPreview();
+  });
+
+  document.getElementById("toggleZeroMaterialRows").addEventListener("click", () => {
+    state.displayOptions = {
+      ...state.displayOptions,
+      showZeroMaterialRows: !state.displayOptions?.showZeroMaterialRows
+    };
+    persist();
+    updateZeroMaterialToggle();
     renderPreview();
   });
 
