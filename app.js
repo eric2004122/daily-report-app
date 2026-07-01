@@ -632,12 +632,7 @@ function groupTableForReport(group) {
 }
 
 function shouldShowQuantityRow(row) {
-  const todayValue = String(row?.[1] ?? "").trim();
-  if (!todayValue) return false;
-  const normalized = todayValue.replaceAll(",", "");
-  const numericValue = Number(normalized);
-  if (!Number.isNaN(numericValue)) return numericValue !== 0;
-  return todayValue !== "0";
+  return quantityRowHasAnyValue(row);
 }
 
 function shouldShowLaborRow(row) {
