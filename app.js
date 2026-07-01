@@ -965,15 +965,17 @@ function buildMainReportBlocks(reportLaborGroups, reportMaterialGroups) {
   const blocks = [...workBlocks()];
   blocks.push(...groupGridBlocks("本日出工數", reportLaborGroups, "labor-grid", 3, 12));
   blocks.push(...groupGridBlocks("本日進場材料", reportMaterialGroups, "material-grid", 4, 10));
-  blocks.push(...noteBlocks("重要記事", state.notes));
-  blocks.push(...noteBlocks("交辦事項", state.instructions));
-  blocks.push(reportBlock(`
+  const footerBlocks = [
+    ...noteBlocks("重要記事", state.notes),
+    ...noteBlocks("交辦事項", state.instructions),
+    reportBlock(`
     <div class="sign-row">
       <div>工地主任：${escapeHtml(state.siteManager)}</div>
       <div>製表：${escapeHtml(state.preparedBy)}</div>
-    </div>`));
+    </div>`)
+  ];
 
-  return blocks;
+  return fillShortDailyReport(blocks, footerBlocks);
 }
 
 function workBlocks() {
@@ -1035,6 +1037,39 @@ function groupGridBlocks(title, groups, gridClass, columns, maxRowsPerTable) {
       <div class="report-section-title">${continuedTitle}</div>
       <div class="${gridClass}">${paddedTables.join("")}</div>`);
   });
+}
+
+function blankGridBlock(gridClass, columns, maxRowsPerTable) {
+  const tables = Array.from({ length: columns }, () => groupTable({ title: "", rows: [] }, maxRowsPerTable));
+  return reportBlock(`<div class="${gridClass}">${tables.join("")}</div>`);
+}
+
+function fillShortDailyReport(blocks, footerBlocks) {
+  if (state.displayOptions?.showZeroLaborRows) return [...blocks, ...footerBlocks];
+
+  const measurer = document.createElement("div");
+  measurer.className = "pagination-measurer";
+  document.body.appendChild(measurer);
+
+  const filledBlocks = [...blocks];
+  const fillerBlock = blankGridBlock("material-grid", 4, 10);
+  let guard = 0;
+
+  while (guard < 20) {
+    const candidateBlocks = [...filledBlocks, fillerBlock, ...footerBlocks];
+    if (reportBlocksOverflow(measurer, candidateBlocks)) break;
+    filledBlocks.push(fillerBlock);
+    guard += 1;
+  }
+
+  measurer.remove();
+  return [...filledBlocks, ...footerBlocks];
+}
+
+function reportBlocksOverflow(container, blocks) {
+  container.innerHTML = reportPage(blocks.join(""), 1, 1);
+  const body = container.querySelector(".report-body");
+  return body.scrollHeight > body.clientHeight + 1;
 }
 
 function noteBlocks(title, value) {
