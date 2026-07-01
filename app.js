@@ -1026,10 +1026,14 @@ function groupGridBlocks(title, groups, gridClass, columns, maxRowsPerTable) {
   });
 
   return chunkPhotos(tableBlocks, columns).map((tables, index) => {
+    const paddedTables = [...tables];
+    while (paddedTables.length < columns) {
+      paddedTables.push(groupTable({ title: "", rows: [] }, maxRowsPerTable));
+    }
     const continuedTitle = index ? `${title}（續）` : title;
     return reportBlock(`
       <div class="report-section-title">${continuedTitle}</div>
-      <div class="${gridClass}">${tables.join("")}</div>`);
+      <div class="${gridClass}">${paddedTables.join("")}</div>`);
   });
 }
 
