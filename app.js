@@ -799,7 +799,7 @@ function constructionLogHtml(page, pageNumber, totalPages) {
 function constructionTableBlocks(title, headers, rows) {
   const sourceRows = rows.length ? rows : [Array(headers.length).fill("")];
   return chunkRows(sourceRows, 5).map((chunk, index) => `
-    <div class="construction-section-title">${escapeHtml(index ? `${title}（續）` : title)}</div>
+    ${index ? "" : `<div class="construction-section-title">${escapeHtml(title)}</div>`}
     <table class="construction-log-table">
       <thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead>
       <tbody>${padRows(chunk, 5, headers.length).map(constructionRowHtml).join("")}</tbody>
@@ -809,7 +809,7 @@ function constructionTableBlocks(title, headers, rows) {
 function constructionPeopleBlocks(rows) {
   const sourceRows = rows.length ? rows : [Array(6).fill("")];
   return chunkRows(sourceRows, 5).map((chunk, index) => `
-    <div class="construction-section-title">${index ? "三、工地人員及機具管理（續）：" : "三、工地人員及機具管理（含約定之出工人數及機具使用情形及數量）："}</div>
+    ${index ? "" : `<div class="construction-section-title">三、工地人員及機具管理（含約定之出工人數及機具使用情形及數量）：</div>`}
     <table class="construction-people-table">
       <thead><tr><th>工別</th><th>本日人數</th><th>累計人數</th><th>機具名稱</th><th>本日使用數量</th><th>累計使用數量</th></tr></thead>
       <tbody>${padRows(chunk, 5, 6).map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody>
@@ -865,7 +865,7 @@ function splitPermitNo(value) {
 }
 
 function buildConstructionItemRows() {
-  const quantityRows = flattenLaborRows().filter(({ row, group }) => !group.title.includes("機具") && quantityRowHasAnyValue(row));
+  const quantityRows = flattenLaborRows().filter(({ row, group }) => !group.title.includes("機具") && shouldShowLaborRow(row));
   const rows = state.workToday
     .filter((line) => String(line).trim())
     .map((line) => {
@@ -887,16 +887,16 @@ function buildConstructionItemRows() {
 function buildConstructionMaterialRows() {
   return state.materialGroups
     .flatMap((group) => group.rows)
-    .filter((row) => quantityRowHasAnyValue(row))
+    .filter((row) => shouldShowMaterialRow(row))
     .map((row) => [cleanMaterialName(row[0]), guessUnit(row[0]), "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
 }
 
 function buildPeopleMachineRows() {
   const workerRows = flattenLaborRows()
-    .filter(({ row, group }) => !group.title.includes("機具") && quantityRowHasAnyValue(row))
+    .filter(({ row, group }) => !group.title.includes("機具") && shouldShowLaborRow(row))
     .map(({ row }) => [cleanLaborName(row[0]), row[1], cumulativeWithToday(row[1], row[2])]);
   const machineRows = flattenLaborRows()
-    .filter(({ row, group }) => group.title.includes("機具") && quantityRowHasAnyValue(row))
+    .filter(({ row, group }) => group.title.includes("機具") && shouldShowLaborRow(row))
     .map(({ row }) => [cleanLaborName(row[0]), row[1], cumulativeWithToday(row[1], row[2])]);
   const count = Math.max(workerRows.length, machineRows.length, 5);
   const rows = [];
