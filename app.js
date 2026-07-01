@@ -682,7 +682,7 @@ function renderConstructionLogPreview() {
   const pages = constructionLogPages();
   document.getElementById("reportPreview").innerHTML = pages
     .map((page, index) => `
-      <article class="report-page construction-log-page">
+      <article class="report-page construction-log-page ${page.isFirst ? "construction-log-first-page" : "construction-log-continuation-page"}">
         ${constructionLogHtml(page, index + 1, pages.length)}
       </article>`)
     .join("");
@@ -725,27 +725,31 @@ function constructionLogPages() {
 function constructionLogHtml(page, pageNumber, totalPages) {
   const date = rocDateParts(state.meta.reportDate);
   const permit = splitPermitNo(state.meta.permitNo);
+  const headerHtml = page.isFirst
+    ? `
+      <div class="construction-log-head">
+        <div></div>
+        <h2>建築物施工日誌</h2>
+        <strong>B14-4</strong>
+      </div>
+      <div class="construction-log-code">表報編號：</div>
+      <div class="construction-log-meta">
+        <span>本日天氣：上午：${escapeHtml(state.weather.morning)}</span>
+        <span>下午：${escapeHtml(state.weather.afternoon)}</span>
+        <span>填表日期：${escapeHtml(date.year)}年　${escapeHtml(date.month)}月　${escapeHtml(date.day)}日 (星期${escapeHtml(date.weekday)})</span>
+      </div>
+      <table class="construction-info-table">
+        <tbody>
+          <tr><th>工程名稱</th><td>${escapeHtml(state.meta.projectName)}</td><th>承造人</th><td>${escapeHtml(state.meta.contractor)}</td></tr>
+          <tr><th>建雜照號碼</th><td>${escapeHtml(permit.prefix)}</td><th>字第</th><td>${escapeHtml(permit.number)}號</td></tr>
+          <tr><th>開工日期</th><td>${escapeHtml(state.meta.startDate)}</td><th>核定竣工日期</th><td>${escapeHtml(state.meta.completionDate)}</td></tr>
+          <tr><th>預定進度(%)</th><td>${escapeHtml(state.meta.plannedProgress)}</td><th>實際進度(%)</th><td>${escapeHtml(state.meta.actualProgress)}</td></tr>
+        </tbody>
+      </table>`
+    : "";
 
   return `
-    <div class="construction-log-head">
-      <div></div>
-      <h2>建築物施工日誌${page.isFirst ? "" : "（續）"}</h2>
-      <strong>B14-4</strong>
-    </div>
-    <div class="construction-log-code">表報編號：</div>
-    <div class="construction-log-meta">
-      <span>本日天氣：上午：${escapeHtml(state.weather.morning)}</span>
-      <span>下午：${escapeHtml(state.weather.afternoon)}</span>
-      <span>填表日期：${escapeHtml(date.year)}年　${escapeHtml(date.month)}月　${escapeHtml(date.day)}日 (星期${escapeHtml(date.weekday)})</span>
-    </div>
-    <table class="construction-info-table">
-      <tbody>
-        <tr><th>工程名稱</th><td>${escapeHtml(state.meta.projectName)}</td><th>承造人</th><td>${escapeHtml(state.meta.contractor)}</td></tr>
-        <tr><th>建雜照號碼</th><td>${escapeHtml(permit.prefix)}</td><th>字第</th><td>${escapeHtml(permit.number)}號</td></tr>
-        <tr><th>開工日期</th><td>${escapeHtml(state.meta.startDate)}</td><th>核定竣工日期</th><td>${escapeHtml(state.meta.completionDate)}</td></tr>
-        <tr><th>預定進度(%)</th><td>${escapeHtml(state.meta.plannedProgress)}</td><th>實際進度(%)</th><td>${escapeHtml(state.meta.actualProgress)}</td></tr>
-      </tbody>
-    </table>
+    ${headerHtml}
     ${page.blocks.join("")}
     ${totalPages > 1 ? `<div class="construction-page-number">第 ${pageNumber} / ${totalPages} 頁</div>` : ""}`;
 }

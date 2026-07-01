@@ -665,6 +665,10 @@ textarea {
   letter-spacing: 0;
 }
 
+.construction-log-continuation-page {
+  padding-top: 12mm;
+}
+
 .construction-log-page table {
   width: 100%;
   border-collapse: collapse;
