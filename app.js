@@ -37,6 +37,9 @@ const defaultState = {
     "連續壁第41單元挖掘及自主檢查改善",
     "連續壁-解壓井接電施作"
   ],
+  constructionItems: [
+    ["", "", "", "", "", ""]
+  ],
   laborGroups: [
     {
       title: "契約工",
@@ -279,6 +282,7 @@ function renderEditor() {
   renderLineEditor("tomorrowWorkList", state.workTomorrow, renderEditor);
   renderGroupEditor("laborEditor", state.laborGroups, renderEditor);
   renderGroupEditor("materialEditor", state.materialGroups, renderEditor);
+  renderConstructionItemEditor();
   renderPhotoEditor();
 
   document.getElementById("morningWeather").value = state.weather.morning;
@@ -418,6 +422,56 @@ function renderGroupEditor(id, groups, rerender) {
       groups[groupIndex].rows.splice(rowIndex, 1);
       persist();
       rerender();
+      renderPreview();
+    });
+  });
+}
+
+function renderConstructionItemEditor() {
+  const mount = document.getElementById("constructionItemEditor");
+  const rows = state.constructionItems?.length ? state.constructionItems : [["", "", "", "", "", ""]];
+  state.constructionItems = rows;
+  mount.innerHTML = `
+    <div class="group-editor construction-item-editor">
+      <table class="edit-table construction-item-edit-table">
+        <thead>
+          <tr>
+            <th>施工項目</th>
+            <th>單位</th>
+            <th>契約數量</th>
+            <th>本日完成數量</th>
+            <th>累計完成數量</th>
+            <th>備註</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows
+            .map((row, rowIndex) => `
+              <tr>
+                ${[0, 1, 2, 3, 4, 5]
+                  .map((columnIndex) => `<td><input data-construction-item="${rowIndex}:${columnIndex}" value="${escapeHtml(row[columnIndex] || "")}" /></td>`)
+                  .join("")}
+                <td><button class="row-btn" data-remove-construction-item="${rowIndex}" type="button">刪</button></td>
+              </tr>`)
+            .join("")}
+        </tbody>
+      </table>
+    </div>`;
+
+  mount.querySelectorAll("[data-construction-item]").forEach((input) => {
+    wireInput(input, (value) => {
+      const [rowIndex, columnIndex] = input.dataset.constructionItem.split(":").map(Number);
+      state.constructionItems[rowIndex][columnIndex] = value;
+    });
+  });
+
+  mount.querySelectorAll("[data-remove-construction-item]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.constructionItems.splice(Number(button.dataset.removeConstructionItem), 1);
+      if (!state.constructionItems.length) state.constructionItems.push(["", "", "", "", "", ""]);
+      persist();
+      renderEditor();
       renderPreview();
     });
   });
@@ -873,23 +927,9 @@ function splitPermitNo(value) {
 }
 
 function buildConstructionItemRows() {
-  const quantityRows = flattenLaborRows().filter(({ row, group }) => !group.title.includes("機具") && shouldShowLaborRow(row));
-  const rows = state.workToday
-    .filter((line) => String(line).trim())
-    .map((line) => {
-      const item = cleanConstructionName(line);
-      const matched = quantityRows.find(({ row }) => item && row[0].includes(item));
-      const source = matched?.row || ["", "", ""];
-      return [item, rowUnit(source, item), "", source[1] || "", source[2] ? cumulativeWithToday(source[1], source[2]) : "", ""];
-    });
-
-  if (!rows.length) {
-    quantityRows.forEach(({ row }) => {
-      rows.push([cleanConstructionName(row[0]), rowUnit(row), "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
-    });
-  }
-
-  return rows;
+  return (state.constructionItems || [])
+    .filter((row) => row.some((value) => String(value ?? "").trim() !== ""))
+    .map((row) => [row[0] || "", row[1] || "", row[2] || "", row[3] || "", row[4] || "", row[5] || ""]);
 }
 
 function buildConstructionMaterialRows() {
@@ -1229,40 +1269,44 @@ function downloadCsv() {
 
 function buildCsvRows() {
   const rows = [
-    ["類別", "項目", "單位", "本日", "累計", "備註"],
-    ["基本資料", "工程標題", "", "", "", state.meta.title],
-    ["基本資料", "填表日期", "", "", "", state.meta.reportDate],
-    ["基本資料", "工程名稱", "", "", "", state.meta.projectName],
-    ["基本資料", "承造人", "", "", "", state.meta.contractor],
-    ["基本資料", "建照號碼", "", "", "", state.meta.permitNo],
-    ["基本資料", "開工日期", "", "", "", state.meta.startDate],
-    ["基本資料", "核定竣工日期", "", "", "", state.meta.completionDate],
-    ["基本資料", "預定進度(%)", "", "", "", state.meta.plannedProgress],
-    ["基本資料", "實際進度(%)", "", "", "", state.meta.actualProgress],
-    ["天氣", "上午", "", "", "", state.weather.morning],
-    ["天氣", "下午", "", "", "", state.weather.afternoon]
+    ["類別", "項目", "單位", "契約數量", "本日", "累計", "備註"],
+    ["基本資料", "工程標題", "", "", "", "", state.meta.title],
+    ["基本資料", "填表日期", "", "", "", "", state.meta.reportDate],
+    ["基本資料", "工程名稱", "", "", "", "", state.meta.projectName],
+    ["基本資料", "承造人", "", "", "", "", state.meta.contractor],
+    ["基本資料", "建照號碼", "", "", "", "", state.meta.permitNo],
+    ["基本資料", "開工日期", "", "", "", "", state.meta.startDate],
+    ["基本資料", "核定竣工日期", "", "", "", "", state.meta.completionDate],
+    ["基本資料", "預定進度(%)", "", "", "", "", state.meta.plannedProgress],
+    ["基本資料", "實際進度(%)", "", "", "", "", state.meta.actualProgress],
+    ["天氣", "上午", "", "", "", "", state.weather.morning],
+    ["天氣", "下午", "", "", "", "", state.weather.afternoon]
   ];
 
-  state.workToday.forEach((line, index) => rows.push(["本日工作", index + 1, "", "", "", line]));
-  state.workTomorrow.forEach((line, index) => rows.push(["明日工作", index + 1, "", "", "", line]));
+  state.workToday.forEach((line, index) => rows.push(["本日工作", index + 1, "", "", "", "", line]));
+  state.workTomorrow.forEach((line, index) => rows.push(["明日工作", index + 1, "", "", "", "", line]));
+
+  (state.constructionItems || []).forEach((row) => {
+    rows.push(["施工日誌-按圖施工概況", row[0] || "", row[1] || "", row[2] || "", row[3] || "", row[4] || "", row[5] || ""]);
+  });
 
   state.laborGroups.forEach((group) => {
     group.rows.forEach((row) => {
-      rows.push([`本日出工數-${group.title}`, row[0], row[3] || "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
+      rows.push([`本日出工數-${group.title}`, row[0], row[3] || "", "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
     });
   });
 
   state.materialGroups.forEach((group) => {
     group.rows.forEach((row) => {
-      rows.push([`本日進場材料-${group.title}`, row[0], row[3] || "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
+      rows.push([`本日進場材料-${group.title}`, row[0], row[3] || "", "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
     });
   });
 
-  rows.push(["記事與簽核", "重要記事", "", "", "", state.notes]);
-  rows.push(["記事與簽核", "交辦事項", "", "", "", state.instructions]);
-  rows.push(["記事與簽核", "工地主任", "", "", "", state.siteManager]);
-  rows.push(["記事與簽核", "製表", "", "", "", state.preparedBy]);
-  state.photos.forEach((photo, index) => rows.push(["施工照片", index + 1, "", "", "", photo.caption]));
+  rows.push(["記事與簽核", "重要記事", "", "", "", "", state.notes]);
+  rows.push(["記事與簽核", "交辦事項", "", "", "", "", state.instructions]);
+  rows.push(["記事與簽核", "工地主任", "", "", "", "", state.siteManager]);
+  rows.push(["記事與簽核", "製表", "", "", "", "", state.preparedBy]);
+  state.photos.forEach((photo, index) => rows.push(["施工照片", index + 1, "", "", "", "", photo.caption]));
 
   return rows;
 }
@@ -1342,18 +1386,21 @@ function stateFromCsv(rows) {
   };
   const laborGroups = [];
   const materialGroups = [];
+  const constructionItems = [];
   const photoRows = [];
   const workToday = [];
   const workTomorrow = [];
 
   const hasUnitColumn = rows[0]?.[2] === "單位";
+  const hasContractColumn = rows[0]?.[3] === "契約數量";
 
   rows.forEach((sourceRow) => {
     const [category = "", item = ""] = sourceRow;
     const unit = hasUnitColumn ? sourceRow[2] || "" : "";
-    const today = hasUnitColumn ? sourceRow[3] || "" : sourceRow[2] || "";
-    const total = hasUnitColumn ? sourceRow[4] || "" : sourceRow[3] || "";
-    const note = hasUnitColumn ? sourceRow[5] || "" : sourceRow[4] || "";
+    const contract = hasContractColumn ? sourceRow[3] || "" : "";
+    const today = hasContractColumn ? sourceRow[4] || "" : hasUnitColumn ? sourceRow[3] || "" : sourceRow[2] || "";
+    const total = hasContractColumn ? sourceRow[5] || "" : hasUnitColumn ? sourceRow[4] || "" : sourceRow[3] || "";
+    const note = hasContractColumn ? sourceRow[6] || "" : hasUnitColumn ? sourceRow[5] || "" : sourceRow[4] || "";
 
     if (category === "類別") return;
 
@@ -1367,6 +1414,8 @@ function stateFromCsv(rows) {
       workToday[csvRowIndex(item, workToday.length)] = note;
     } else if (category === "明日工作") {
       workTomorrow[csvRowIndex(item, workTomorrow.length)] = note;
+    } else if (category === "施工日誌-按圖施工概況") {
+      constructionItems.push([item, unit, contract, today, total, note]);
     } else if (category.startsWith("本日出工數-")) {
       pushCsvGroupRow(laborGroups, category.replace("本日出工數-", ""), item, today, total, unit);
     } else if (category.startsWith("本日進場材料-")) {
@@ -1386,6 +1435,7 @@ function stateFromCsv(rows) {
 
   if (workToday.length) nextState.workToday = workToday.filter((line) => line !== undefined);
   if (workTomorrow.length) nextState.workTomorrow = workTomorrow.filter((line) => line !== undefined);
+  if (constructionItems.length) nextState.constructionItems = constructionItems;
   if (laborGroups.length) nextState.laborGroups = laborGroups;
   if (materialGroups.length) nextState.materialGroups = materialGroups;
   if (photoRows.length) nextState.photos = photoRows.filter((photo) => photo !== undefined);
@@ -1469,6 +1519,13 @@ function attachGlobalEvents() {
     };
     persist();
     updateZeroMaterialToggle();
+    renderPreview();
+  });
+
+  document.getElementById("addConstructionItem").addEventListener("click", () => {
+    state.constructionItems.push(["", "", "", "", "", ""]);
+    persist();
+    renderEditor();
     renderPreview();
   });
 

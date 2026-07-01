@@ -306,6 +306,32 @@ textarea {
   width: 12%;
 }
 
+.construction-item-editor {
+  overflow-x: auto;
+}
+
+.construction-item-edit-table {
+  min-width: 760px;
+}
+
+.construction-item-edit-table th:nth-child(1) {
+  width: 24%;
+}
+
+.construction-item-edit-table th:nth-child(2) {
+  width: 10%;
+}
+
+.construction-item-edit-table th:nth-child(3),
+.construction-item-edit-table th:nth-child(4),
+.construction-item-edit-table th:nth-child(5) {
+  width: 14%;
+}
+
+.construction-item-edit-table th:nth-child(6) {
+  width: 18%;
+}
+
 .photo-row {
   grid-template-columns: 68px 1fr auto;
   align-items: start;
