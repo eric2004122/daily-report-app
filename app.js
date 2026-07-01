@@ -709,17 +709,57 @@ function constructionLogPages() {
     ...constructionPeopleBlocks(buildPeopleMachineRows()),
     constructionFixedSectionsBlock()
   ];
-  const pages = [];
+  return paginateConstructionBlocks(blocks);
+}
 
-  while (blocks.length) {
-    pages.push({
+function paginateConstructionBlocks(blocks) {
+  if (!blocks.length) return [{ isFirst: true, blocks: [constructionFixedSectionsBlock()] }];
+
+  const measurer = document.createElement("div");
+  measurer.className = "pagination-measurer";
+  document.body.appendChild(measurer);
+
+  const pages = [];
+  let currentBlocks = [];
+
+  blocks.forEach((block) => {
+    const candidateBlocks = [...currentBlocks, block];
+    const isFirstPage = pages.length === 0;
+
+    if (constructionPageOverflows(measurer, {
+      isFirst: isFirstPage,
+      blocks: candidateBlocks
+    }) && currentBlocks.length) {
+      pages.push({ isFirst: isFirstPage, blocks: currentBlocks });
+      currentBlocks = [block];
+    } else {
+      currentBlocks = candidateBlocks;
+    }
+
+    if (constructionPageOverflows(measurer, {
       isFirst: pages.length === 0,
-      blocks: blocks.splice(0, pages.length === 0 ? 4 : 5)
-    });
+      blocks: currentBlocks
+    }) && currentBlocks.length === 1) {
+      pages.push({ isFirst: pages.length === 0, blocks: currentBlocks });
+      currentBlocks = [];
+    }
+  });
+
+  if (currentBlocks.length) {
+    pages.push({ isFirst: pages.length === 0, blocks: currentBlocks });
   }
 
-  if (!pages.length) pages.push({ isFirst: true, blocks: [constructionFixedSectionsBlock()] });
-  return pages;
+  measurer.remove();
+  return pages.length ? pages : [{ isFirst: true, blocks: [constructionFixedSectionsBlock()] }];
+}
+
+function constructionPageOverflows(container, page) {
+  container.innerHTML = `
+    <article class="report-page construction-log-page ${page.isFirst ? "construction-log-first-page" : "construction-log-continuation-page"}">
+      ${constructionLogHtml(page, 1, 99)}
+    </article>`;
+  const measuringPage = container.lastElementChild;
+  return measuringPage.scrollHeight > measuringPage.clientHeight + 1;
 }
 
 function constructionLogHtml(page, pageNumber, totalPages) {
