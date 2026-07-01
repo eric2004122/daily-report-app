@@ -640,6 +640,10 @@ function shouldShowLaborRow(row) {
   return shouldShowQuantityRow(row);
 }
 
+function shouldShowMaterialRow(row) {
+  return row.some((value) => String(value ?? "").trim() !== "");
+}
+
 function renderPreview() {
   if (previewMode === "constructionLog") {
     renderConstructionLogPreview();
@@ -650,7 +654,7 @@ function renderPreview() {
     .map((group) => ({ ...group, rows: group.rows.filter((row) => shouldShowLaborRow(row)) }))
     .filter((group) => group.rows.length);
   const reportMaterialGroups = state.materialGroups
-    .map((group) => ({ ...group, rows: group.rows.filter((row) => shouldShowQuantityRow(row)) }))
+    .map((group) => ({ ...group, rows: group.rows.filter((row) => shouldShowMaterialRow(row)) }))
     .filter((group) => group.rows.length);
   const photosForReport = state.photos.filter((photo) => photo.image);
   const photoPages = chunkPhotos(photosForReport, 6);
@@ -1016,7 +1020,7 @@ function groupGridBlocks(title, groups, gridClass, columns, maxRowsPerTable) {
           ...group,
           title: chunkIndex ? `${group.title}（續）` : group.title,
           rows
-        })
+        }, maxRowsPerTable)
       );
     });
   });

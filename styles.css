@@ -528,6 +528,7 @@ textarea {
 
 .report-data {
   table-layout: fixed;
+  height: 100%;
 }
 
 .report-data th,
@@ -538,6 +539,10 @@ textarea {
   text-align: center;
   vertical-align: middle;
   height: 3.15mm;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .report-data th {
@@ -552,7 +557,6 @@ textarea {
 
 .report-data .name {
   text-align: center;
-  word-break: break-word;
 }
 
 .note-box {
