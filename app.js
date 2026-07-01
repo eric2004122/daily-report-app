@@ -641,7 +641,8 @@ function shouldShowLaborRow(row) {
 }
 
 function shouldShowMaterialRow(row) {
-  return row.some((value) => String(value ?? "").trim() !== "");
+  if (state.displayOptions?.showZeroLaborRows) return row.some((value) => String(value ?? "").trim() !== "");
+  return shouldShowQuantityRow(row);
 }
 
 function renderPreview() {
@@ -952,7 +953,7 @@ function updateZeroLaborToggle() {
   const button = document.getElementById("toggleZeroLaborRows");
   if (!button) return;
   const isShowing = Boolean(state.displayOptions?.showZeroLaborRows);
-  button.textContent = isShowing ? "隱藏零工數" : "顯示零工數";
+  button.textContent = isShowing ? "隱藏零數量" : "顯示零數量";
   button.setAttribute("aria-pressed", String(isShowing));
 }
 
