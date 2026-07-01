@@ -353,6 +353,7 @@ function renderGroupEditor(id, groups, rerender) {
           return `
             <tr>
               <td class="name-cell"><input data-row-name="${groupIndex}:${rowIndex}" value="${escapeHtml(row[0])}" /></td>
+              <td class="unit-cell"><input data-row-unit="${groupIndex}:${rowIndex}" value="${escapeHtml(row[3] || "")}" /></td>
               <td><input data-row-today="${groupIndex}:${rowIndex}" value="${escapeHtml(row[1])}" /></td>
               <td><input data-row-total="${groupIndex}:${rowIndex}" value="${escapeHtml(row[2])}" /></td>
               <td><button class="row-btn" data-remove-row="${groupIndex}:${rowIndex}" type="button">刪</button></td>
@@ -367,7 +368,7 @@ function renderGroupEditor(id, groups, rerender) {
             <button class="small-btn" data-add-row="${groupIndex}" type="button">新增列</button>
           </h3>
           <table class="edit-table">
-            <thead><tr><th>名稱</th><th>本日</th><th>累計</th><th></th></tr></thead>
+            <thead><tr><th>名稱</th><th>單位</th><th>本日</th><th>累計</th><th></th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>`;
@@ -388,6 +389,13 @@ function renderGroupEditor(id, groups, rerender) {
     });
   });
 
+  mount.querySelectorAll("[data-row-unit]").forEach((input) => {
+    wireInput(input, (value) => {
+      const [groupIndex, rowIndex] = input.dataset.rowUnit.split(":").map(Number);
+      groups[groupIndex].rows[rowIndex][3] = value;
+    });
+  });
+
   mount.querySelectorAll("[data-row-total]").forEach((input) => {
     wireInput(input, (value) => {
       const [groupIndex, rowIndex] = input.dataset.rowTotal.split(":").map(Number);
@@ -397,7 +405,7 @@ function renderGroupEditor(id, groups, rerender) {
 
   mount.querySelectorAll("[data-add-row]").forEach((button) => {
     button.addEventListener("click", () => {
-      groups[Number(button.dataset.addRow)].rows.push(["", "0", "0"]);
+      groups[Number(button.dataset.addRow)].rows.push(["", "0", "0", ""]);
       persist();
       rerender();
       renderPreview();
@@ -577,7 +585,7 @@ function metaHeader() {
 
 function groupTable(group, targetRows = 0) {
   const rows = [...group.rows];
-  while (rows.length < targetRows) rows.push(["", "", ""]);
+  while (rows.length < targetRows) rows.push(["", "", "", ""]);
 
   return `
     <table class="report-data">
@@ -798,21 +806,21 @@ function constructionLogHtml(page, pageNumber, totalPages) {
 
 function constructionTableBlocks(title, headers, rows) {
   const sourceRows = rows.length ? rows : [Array(headers.length).fill("")];
-  return chunkRows(sourceRows, 5).map((chunk, index) => `
+  return chunkRows(sourceRows, 18).map((chunk, index) => `
     ${index ? "" : `<div class="construction-section-title">${escapeHtml(title)}</div>`}
     <table class="construction-log-table">
       <thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead>
-      <tbody>${padRows(chunk, 5, headers.length).map(constructionRowHtml).join("")}</tbody>
+      <tbody>${padRows(chunk, Math.max(5, chunk.length), headers.length).map(constructionRowHtml).join("")}</tbody>
     </table>`);
 }
 
 function constructionPeopleBlocks(rows) {
   const sourceRows = rows.length ? rows : [Array(6).fill("")];
-  return chunkRows(sourceRows, 5).map((chunk, index) => `
+  return chunkRows(sourceRows, 14).map((chunk, index) => `
     ${index ? "" : `<div class="construction-section-title">三、工地人員及機具管理（含約定之出工人數及機具使用情形及數量）：</div>`}
     <table class="construction-people-table">
       <thead><tr><th>工別</th><th>本日人數</th><th>累計人數</th><th>機具名稱</th><th>本日使用數量</th><th>累計使用數量</th></tr></thead>
-      <tbody>${padRows(chunk, 5, 6).map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody>
+      <tbody>${padRows(chunk, Math.max(5, chunk.length), 6).map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody>
     </table>`);
 }
 
@@ -872,12 +880,12 @@ function buildConstructionItemRows() {
       const item = cleanConstructionName(line);
       const matched = quantityRows.find(({ row }) => item && row[0].includes(item));
       const source = matched?.row || ["", "", ""];
-      return [item, guessUnit(item || source[0]), "", source[1] || "", source[2] ? cumulativeWithToday(source[1], source[2]) : "", ""];
+      return [item, rowUnit(source, item), "", source[1] || "", source[2] ? cumulativeWithToday(source[1], source[2]) : "", ""];
     });
 
   if (!rows.length) {
     quantityRows.forEach(({ row }) => {
-      rows.push([cleanConstructionName(row[0]), guessUnit(row[0]), "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
+      rows.push([cleanConstructionName(row[0]), rowUnit(row), "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
     });
   }
 
@@ -888,7 +896,7 @@ function buildConstructionMaterialRows() {
   return state.materialGroups
     .flatMap((group) => group.rows)
     .filter((row) => shouldShowMaterialRow(row))
-    .map((row) => [cleanMaterialName(row[0]), guessUnit(row[0]), "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
+    .map((row) => [cleanMaterialName(row[0]), rowUnit(row), "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
 }
 
 function buildPeopleMachineRows() {
@@ -916,6 +924,10 @@ function flattenLaborRows() {
 
 function quantityRowHasAnyValue(row) {
   return parseQuantity(row?.[1]) !== 0 || parseQuantity(row?.[2]) !== 0;
+}
+
+function rowUnit(row, fallbackName = "") {
+  return String(row?.[3] ?? "").trim() || guessUnit(fallbackName || row?.[0]);
 }
 
 function padRows(rows, count, columns) {
@@ -1217,40 +1229,40 @@ function downloadCsv() {
 
 function buildCsvRows() {
   const rows = [
-    ["類別", "項目", "本日", "累計", "備註"],
-    ["基本資料", "工程標題", "", "", state.meta.title],
-    ["基本資料", "填表日期", "", "", state.meta.reportDate],
-    ["基本資料", "工程名稱", "", "", state.meta.projectName],
-    ["基本資料", "承造人", "", "", state.meta.contractor],
-    ["基本資料", "建照號碼", "", "", state.meta.permitNo],
-    ["基本資料", "開工日期", "", "", state.meta.startDate],
-    ["基本資料", "核定竣工日期", "", "", state.meta.completionDate],
-    ["基本資料", "預定進度(%)", "", "", state.meta.plannedProgress],
-    ["基本資料", "實際進度(%)", "", "", state.meta.actualProgress],
-    ["天氣", "上午", "", "", state.weather.morning],
-    ["天氣", "下午", "", "", state.weather.afternoon]
+    ["類別", "項目", "單位", "本日", "累計", "備註"],
+    ["基本資料", "工程標題", "", "", "", state.meta.title],
+    ["基本資料", "填表日期", "", "", "", state.meta.reportDate],
+    ["基本資料", "工程名稱", "", "", "", state.meta.projectName],
+    ["基本資料", "承造人", "", "", "", state.meta.contractor],
+    ["基本資料", "建照號碼", "", "", "", state.meta.permitNo],
+    ["基本資料", "開工日期", "", "", "", state.meta.startDate],
+    ["基本資料", "核定竣工日期", "", "", "", state.meta.completionDate],
+    ["基本資料", "預定進度(%)", "", "", "", state.meta.plannedProgress],
+    ["基本資料", "實際進度(%)", "", "", "", state.meta.actualProgress],
+    ["天氣", "上午", "", "", "", state.weather.morning],
+    ["天氣", "下午", "", "", "", state.weather.afternoon]
   ];
 
-  state.workToday.forEach((line, index) => rows.push(["本日工作", index + 1, "", "", line]));
-  state.workTomorrow.forEach((line, index) => rows.push(["明日工作", index + 1, "", "", line]));
+  state.workToday.forEach((line, index) => rows.push(["本日工作", index + 1, "", "", "", line]));
+  state.workTomorrow.forEach((line, index) => rows.push(["明日工作", index + 1, "", "", "", line]));
 
   state.laborGroups.forEach((group) => {
     group.rows.forEach((row) => {
-      rows.push([`本日出工數-${group.title}`, row[0], row[1], cumulativeWithToday(row[1], row[2]), ""]);
+      rows.push([`本日出工數-${group.title}`, row[0], row[3] || "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
     });
   });
 
   state.materialGroups.forEach((group) => {
     group.rows.forEach((row) => {
-      rows.push([`本日進場材料-${group.title}`, row[0], row[1], cumulativeWithToday(row[1], row[2]), ""]);
+      rows.push([`本日進場材料-${group.title}`, row[0], row[3] || "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
     });
   });
 
-  rows.push(["記事與簽核", "重要記事", "", "", state.notes]);
-  rows.push(["記事與簽核", "交辦事項", "", "", state.instructions]);
-  rows.push(["記事與簽核", "工地主任", "", "", state.siteManager]);
-  rows.push(["記事與簽核", "製表", "", "", state.preparedBy]);
-  state.photos.forEach((photo, index) => rows.push(["施工照片", index + 1, "", "", photo.caption]));
+  rows.push(["記事與簽核", "重要記事", "", "", "", state.notes]);
+  rows.push(["記事與簽核", "交辦事項", "", "", "", state.instructions]);
+  rows.push(["記事與簽核", "工地主任", "", "", "", state.siteManager]);
+  rows.push(["記事與簽核", "製表", "", "", "", state.preparedBy]);
+  state.photos.forEach((photo, index) => rows.push(["施工照片", index + 1, "", "", "", photo.caption]));
 
   return rows;
 }
@@ -1334,7 +1346,15 @@ function stateFromCsv(rows) {
   const workToday = [];
   const workTomorrow = [];
 
-  rows.forEach(([category = "", item = "", today = "", total = "", note = ""]) => {
+  const hasUnitColumn = rows[0]?.[2] === "單位";
+
+  rows.forEach((sourceRow) => {
+    const [category = "", item = ""] = sourceRow;
+    const unit = hasUnitColumn ? sourceRow[2] || "" : "";
+    const today = hasUnitColumn ? sourceRow[3] || "" : sourceRow[2] || "";
+    const total = hasUnitColumn ? sourceRow[4] || "" : sourceRow[3] || "";
+    const note = hasUnitColumn ? sourceRow[5] || "" : sourceRow[4] || "";
+
     if (category === "類別") return;
 
     if (category === "基本資料" && metaMap[item]) {
@@ -1348,9 +1368,9 @@ function stateFromCsv(rows) {
     } else if (category === "明日工作") {
       workTomorrow[csvRowIndex(item, workTomorrow.length)] = note;
     } else if (category.startsWith("本日出工數-")) {
-      pushCsvGroupRow(laborGroups, category.replace("本日出工數-", ""), item, today, total);
+      pushCsvGroupRow(laborGroups, category.replace("本日出工數-", ""), item, today, total, unit);
     } else if (category.startsWith("本日進場材料-")) {
-      pushCsvGroupRow(materialGroups, category.replace("本日進場材料-", ""), item, today, total);
+      pushCsvGroupRow(materialGroups, category.replace("本日進場材料-", ""), item, today, total, unit);
     } else if (category === "記事與簽核" && item === "重要記事") {
       nextState.notes = note;
     } else if (category === "記事與簽核" && item === "交辦事項") {
@@ -1378,13 +1398,13 @@ function csvRowIndex(value, fallback) {
   return Number.isInteger(number) && number > 0 ? number - 1 : fallback;
 }
 
-function pushCsvGroupRow(groups, title, item, today, total) {
+function pushCsvGroupRow(groups, title, item, today, total, unit = "") {
   let group = groups.find((candidate) => candidate.title === title);
   if (!group) {
     group = { title, rows: [] };
     groups.push(group);
   }
-  group.rows.push([item, today, total]);
+  group.rows.push([item, today, total, unit]);
 }
 
 function downloadPdf() {

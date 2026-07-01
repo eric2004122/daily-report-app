@@ -299,7 +299,11 @@ textarea {
 }
 
 .edit-table .name-cell {
-  width: 54%;
+  width: 44%;
+}
+
+.edit-table .unit-cell {
+  width: 12%;
 }
 
 .photo-row {
