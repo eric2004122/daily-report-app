@@ -689,37 +689,36 @@ function renderConstructionLogPreview() {
 }
 
 function constructionLogPages() {
-  const constructionRows = buildConstructionItemRows();
-  const materialRows = buildConstructionMaterialRows();
-  const peopleMachineRows = buildPeopleMachineRows();
-  const pages = [
-    {
-      isFirst: true,
-      constructionRows: padRows(constructionRows.slice(0, 5), 5, 6),
-      materialRows: padRows(materialRows.slice(0, 5), 5, 6),
-      peopleMachineRows: padRows(peopleMachineRows.slice(0, 5), 5, 6)
-    }
+  const blocks = [
+    ...constructionTableBlocks("一、依施工計畫書執行按圖施工概況（含約定之重要施工項目及完成數量等）：", [
+      "施工項目",
+      "單位",
+      "契約數量",
+      "本日完成數量",
+      "累計完成數量",
+      "備註"
+    ], buildConstructionItemRows()),
+    ...constructionTableBlocks("二、工地材料管理概況（含約定之重要材料使用狀況及數量等）：", [
+      "材料名稱",
+      "單位",
+      "契約數量",
+      "本日使用數量",
+      "累計使用數量",
+      "備註"
+    ], buildConstructionMaterialRows()),
+    ...constructionPeopleBlocks(buildPeopleMachineRows()),
+    constructionFixedSectionsBlock()
   ];
-  let constructionIndex = 5;
-  let materialIndex = 5;
-  let peopleIndex = 5;
+  const pages = [];
 
-  while (
-    constructionIndex < constructionRows.length ||
-    materialIndex < materialRows.length ||
-    peopleIndex < peopleMachineRows.length
-  ) {
+  while (blocks.length) {
     pages.push({
-      isFirst: false,
-      constructionRows: constructionRows.slice(constructionIndex, constructionIndex + 12),
-      materialRows: materialRows.slice(materialIndex, materialIndex + 12),
-      peopleMachineRows: peopleMachineRows.slice(peopleIndex, peopleIndex + 12)
+      isFirst: pages.length === 0,
+      blocks: blocks.splice(0, pages.length === 0 ? 4 : 5)
     });
-    constructionIndex += 12;
-    materialIndex += 12;
-    peopleIndex += 12;
   }
 
+  if (!pages.length) pages.push({ isFirst: true, blocks: [constructionFixedSectionsBlock()] });
   return pages;
 }
 
@@ -747,22 +746,32 @@ function constructionLogHtml(page, pageNumber, totalPages) {
         <tr><th>預定進度(%)</th><td>${escapeHtml(state.meta.plannedProgress)}</td><th>實際進度(%)</th><td>${escapeHtml(state.meta.actualProgress)}</td></tr>
       </tbody>
     </table>
-    <div class="construction-section-title">一、依施工計畫書執行按圖施工概況（含約定之重要施工項目及完成數量等）：</div>
+    ${page.blocks.join("")}
+    ${totalPages > 1 ? `<div class="construction-page-number">第 ${pageNumber} / ${totalPages} 頁</div>` : ""}`;
+}
+
+function constructionTableBlocks(title, headers, rows) {
+  const sourceRows = rows.length ? rows : [Array(headers.length).fill("")];
+  return chunkRows(sourceRows, 5).map((chunk, index) => `
+    <div class="construction-section-title">${escapeHtml(index ? `${title}（續）` : title)}</div>
     <table class="construction-log-table">
-      <thead><tr><th>施工項目</th><th>單位</th><th>契約數量</th><th>本日完成數量</th><th>累計完成數量</th><th>備註</th></tr></thead>
-      <tbody>${page.constructionRows.map(constructionRowHtml).join("")}</tbody>
-    </table>
-    <div class="construction-section-title">二、工地材料管理概況（含約定之重要材料使用狀況及數量等）：</div>
-    <table class="construction-log-table">
-      <thead><tr><th>材料名稱</th><th>單位</th><th>契約數量</th><th>本日使用數量</th><th>累計使用數量</th><th>備註</th></tr></thead>
-      <tbody>${page.materialRows.map(constructionRowHtml).join("")}</tbody>
-    </table>
-    <div class="construction-section-title">三、工地人員及機具管理（含約定之出工人數及機具使用情形及數量）：</div>
+      <thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead>
+      <tbody>${padRows(chunk, 5, headers.length).map(constructionRowHtml).join("")}</tbody>
+    </table>`);
+}
+
+function constructionPeopleBlocks(rows) {
+  const sourceRows = rows.length ? rows : [Array(6).fill("")];
+  return chunkRows(sourceRows, 5).map((chunk, index) => `
+    <div class="construction-section-title">${index ? "三、工地人員及機具管理（續）：" : "三、工地人員及機具管理（含約定之出工人數及機具使用情形及數量）："}</div>
     <table class="construction-people-table">
       <thead><tr><th>工別</th><th>本日人數</th><th>累計人數</th><th>機具名稱</th><th>本日使用數量</th><th>累計使用數量</th></tr></thead>
-      <tbody>${page.peopleMachineRows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody>
-    </table>
-    ${page.isFirst ? `<div class="construction-text-row">四、本日施工項目是否有須依「營造業專業工程特定施工項目應置之技術士種類、比率或人數標準表」規定應設置之技術士：</div>
+      <tbody>${padRows(chunk, 5, 6).map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody>
+    </table>`);
+}
+
+function constructionFixedSectionsBlock() {
+  return `<div class="construction-text-row">四、本日施工項目是否有須依「營造業專業工程特定施工項目應置之技術士種類、比率或人數標準表」規定應設置之技術士：</div>
     <div class="construction-safety">
       <p>五、工地職業安全衛生事項之督導、公共環境與安全之維護及其他工地行政事務(註3)：</p>
       <p>(一)施工前檢查事項：</p>
@@ -781,7 +790,7 @@ function constructionLogHtml(page, pageNumber, totalPages) {
       <p>3. 施工前檢查事項所列工作應由依職業安全衛生管理辦法規定所置職業安全衛生管理人員於每日施工前辦理。</p>
       <p>4. 重要事項紀錄包含起造人及監造人指示、工地緊急異常狀況通報處理情形及其他重要事項。</p>
       <p>5. 本工程依營造業法規定須置工地主任者，由工地主任簽章。</p>
-    </div>` : `<div class="construction-continuation-note">續頁資料承前頁。第 ${pageNumber} / ${totalPages} 頁</div>`}`;
+    </div>`;
 }
 
 function constructionRowHtml(row) {

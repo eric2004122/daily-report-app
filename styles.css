@@ -847,6 +847,12 @@ textarea {
   text-align: right;
 }
 
+.construction-page-number {
+  margin-top: 2mm;
+  font-size: 10pt;
+  text-align: right;
+}
+
 @media (max-width: 1180px) {
   .app-header {
     align-items: flex-start;
