@@ -196,6 +196,26 @@ button.row-btn:hover {
   line-height: 1.45;
 }
 
+.construction-safety-template {
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  color: #273b39;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.construction-safety-template strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.construction-safety-template p {
+  margin: 4px 0;
+}
+
 .field-grid,
 .weather-grid {
   display: grid;
