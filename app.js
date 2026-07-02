@@ -189,7 +189,6 @@ let state = loadState();
 let previewZoom = 1;
 let userAdjustedPreviewZoom = false;
 let previewMode = "daily";
-let previewPanState = null;
 
 const metaFieldDefs = [
   ["title", "工程標題"],
@@ -758,7 +757,6 @@ function renderPreview() {
         return reportPage(photoBody, pageNumber, totalPages, "photo-report-body");
       })
       .join("")}`;
-  updatePreviewPanState();
 }
 
 function renderConstructionLogPreview() {
@@ -769,7 +767,6 @@ function renderConstructionLogPreview() {
         ${constructionLogHtml(page, index + 1, pages.length)}
       </article>`)
     .join("");
-  updatePreviewPanState();
 }
 
 function constructionLogPages() {
@@ -1754,52 +1751,6 @@ function setPreviewZoom(value) {
     pane.scrollTop = Math.max(0, centerBefore.y * previewZoom - pane.clientHeight / 2);
   }
 
-  updatePreviewPanState();
-}
-
-function updatePreviewPanState() {
-  const pane = document.querySelector(".preview-pane");
-  if (!pane) return;
-  const canPan =
-    previewZoom > responsivePreviewZoom() + 0.01 ||
-    pane.scrollWidth > pane.clientWidth + 1 ||
-    pane.scrollHeight > pane.clientHeight + 1;
-  pane.classList.toggle("is-pannable", canPan);
-}
-
-function attachPreviewPanEvents() {
-  const pane = document.querySelector(".preview-pane");
-  if (!pane) return;
-
-  pane.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0 || event.target.closest(".preview-topbar, button, input, textarea, select, a")) return;
-    event.preventDefault();
-
-    previewPanState = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      scrollLeft: pane.scrollLeft,
-      scrollTop: pane.scrollTop
-    };
-    pane.classList.add("is-panning");
-    if (pane.setPointerCapture) pane.setPointerCapture(event.pointerId);
-  });
-
-  pane.addEventListener("pointermove", (event) => {
-    if (!previewPanState || previewPanState.pointerId !== event.pointerId) return;
-    event.preventDefault();
-    pane.scrollLeft = previewPanState.scrollLeft - (event.clientX - previewPanState.startX);
-    pane.scrollTop = previewPanState.scrollTop - (event.clientY - previewPanState.startY);
-  });
-
-  ["pointerup", "pointercancel", "lostpointercapture"].forEach((eventName) => {
-    pane.addEventListener(eventName, (event) => {
-      if (!previewPanState || previewPanState.pointerId !== event.pointerId) return;
-      previewPanState = null;
-      pane.classList.remove("is-panning");
-    });
-  });
 }
 
 function responsivePreviewZoom() {
@@ -1812,12 +1763,10 @@ function responsivePreviewZoom() {
 
 window.addEventListener("resize", () => {
   if (!userAdjustedPreviewZoom) setPreviewZoom(responsivePreviewZoom());
-  updatePreviewPanState();
 });
 
 renderEditor();
 attachGlobalEvents();
-attachPreviewPanEvents();
 updatePreviewModeToggle();
 setPreviewZoom(responsivePreviewZoom());
 renderPreview();
