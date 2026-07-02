@@ -770,31 +770,49 @@ function renderConstructionLogPreview() {
 }
 
 function constructionLogPages() {
-  const blocks = [
-    ...constructionTableBlocks("一、依施工計畫書執行按圖施工概況（含約定之重要施工項目及完成數量等）：", [
+  const sections = [
+    constructionTableSection("一、依施工計畫書執行按圖施工概況（含約定之重要施工項目及完成數量等）：", [
       "施工項目",
       "單位",
       "契約數量",
       "本日完成數量",
       "累計完成數量",
       "備註"
-    ], buildConstructionItemRows()),
-    ...constructionTableBlocks("二、工地材料管理概況（含約定之重要材料使用狀況及數量等）：", [
+    ], buildConstructionItemRows(), "construction-log-table"),
+    constructionTableSection("二、工地材料管理概況（含約定之重要材料使用狀況及數量等）：", [
       "材料名稱",
       "單位",
       "契約數量",
       "本日使用數量",
       "累計使用數量",
       "備註"
-    ], buildConstructionMaterialRows()),
-    ...constructionPeopleBlocks(buildPeopleMachineRows()),
-    constructionFixedSectionsBlock()
+    ], buildConstructionMaterialRows(), "construction-log-table"),
+    constructionTableSection("三、工地人員及機具管理（含約定之出工人數及機具使用情形及數量）：", [
+      "工別",
+      "本日人數",
+      "累計人數",
+      "機具名稱",
+      "本日使用數量",
+      "累計使用數量"
+    ], buildPeopleMachineRows(), "construction-people-table"),
+    ...constructionFixedSectionBlocks().map((html) => ({ type: "html", html }))
   ];
-  return paginateConstructionBlocks(blocks);
+  return paginateConstructionSections(sections);
 }
 
-function paginateConstructionBlocks(blocks) {
-  if (!blocks.length) return [{ isFirst: true, blocks: [constructionFixedSectionsBlock()] }];
+function constructionTableSection(title, headers, rows, tableClass) {
+  return {
+    type: "table",
+    title,
+    headers,
+    rows,
+    tableClass,
+    minRows: 5
+  };
+}
+
+function paginateConstructionSections(sections) {
+  if (!sections.length) return [{ isFirst: true, blocks: [constructionFixedSectionsBlock()] }];
 
   const measurer = document.createElement("div");
   measurer.className = "pagination-measurer";
@@ -803,35 +821,94 @@ function paginateConstructionBlocks(blocks) {
   const pages = [];
   let currentBlocks = [];
 
-  blocks.forEach((block) => {
-    const candidateBlocks = [...currentBlocks, block];
+  const pushPage = () => {
     const isFirstPage = pages.length === 0;
-
-    if (constructionPageOverflows(measurer, {
-      isFirst: isFirstPage,
-      blocks: candidateBlocks
-    }) && currentBlocks.length) {
-      pages.push({ isFirst: isFirstPage, blocks: currentBlocks });
-      currentBlocks = [block];
-    } else {
-      currentBlocks = candidateBlocks;
+    if (currentBlocks.length) {
+      pages.push({ isFirst: isFirstPage, blocks: [...currentBlocks] });
+      currentBlocks.length = 0;
     }
+  };
 
-    if (constructionPageOverflows(measurer, {
-      isFirst: pages.length === 0,
-      blocks: currentBlocks
-    }) && currentBlocks.length === 1) {
-      pages.push({ isFirst: pages.length === 0, blocks: currentBlocks });
-      currentBlocks = [];
-    }
+  const fitsOnCurrentPage = (blocks) => !constructionPageOverflows(measurer, {
+    isFirst: pages.length === 0,
+    blocks
   });
 
-  if (currentBlocks.length) {
-    pages.push({ isFirst: pages.length === 0, blocks: currentBlocks });
-  }
+  sections.forEach((section) => {
+    if (section.type === "table") {
+      appendConstructionTableSection(section, currentBlocks, pushPage, fitsOnCurrentPage);
+      return;
+    }
+
+    appendConstructionHtmlBlock(section.html, currentBlocks, pushPage, fitsOnCurrentPage);
+  });
+
+  pushPage();
 
   measurer.remove();
   return pages.length ? pages : [{ isFirst: true, blocks: [constructionFixedSectionsBlock()] }];
+}
+
+function appendConstructionHtmlBlock(block, currentBlocks, pushPage, fitsOnCurrentPage) {
+  const candidateBlocks = [...currentBlocks, block];
+  if (!fitsOnCurrentPage(candidateBlocks) && currentBlocks.length) {
+    pushPage();
+  }
+  currentBlocks.push(block);
+}
+
+function appendConstructionTableSection(section, currentBlocks, pushPage, fitsOnCurrentPage) {
+  const sourceRows = section.rows.length ? section.rows : [Array(section.headers.length).fill("")];
+  const fullBlock = constructionTableBlock(section, sourceRows, true);
+
+  if (fitsOnCurrentPage([...currentBlocks, fullBlock])) {
+    currentBlocks.push(fullBlock);
+    return;
+  }
+
+  if (currentBlocks.length) {
+    pushPage();
+    if (fitsOnCurrentPage([fullBlock])) {
+      currentBlocks.push(fullBlock);
+      return;
+    }
+  }
+
+  let remainingRows = [...sourceRows];
+  let includeTitle = true;
+
+  while (remainingRows.length) {
+    let low = 1;
+    let high = remainingRows.length;
+    let bestCount = 0;
+
+    while (low <= high) {
+      const middle = Math.floor((low + high) / 2);
+      const block = constructionTableBlock(section, remainingRows.slice(0, middle), includeTitle);
+      if (fitsOnCurrentPage([...currentBlocks, block])) {
+        bestCount = middle;
+        low = middle + 1;
+      } else {
+        high = middle - 1;
+      }
+    }
+
+    if (!bestCount) {
+      if (currentBlocks.length) {
+        pushPage();
+        continue;
+      }
+      bestCount = 1;
+    }
+
+    currentBlocks.push(constructionTableBlock(section, remainingRows.slice(0, bestCount), includeTitle));
+    remainingRows = remainingRows.slice(bestCount);
+    includeTitle = false;
+
+    if (remainingRows.length) {
+      pushPage();
+    }
+  }
 }
 
 function constructionPageOverflows(container, page) {
@@ -875,24 +952,13 @@ function constructionLogHtml(page, pageNumber, totalPages) {
     ${totalPages > 1 ? `<div class="construction-page-number">第 ${pageNumber} / ${totalPages} 頁</div>` : ""}`;
 }
 
-function constructionTableBlocks(title, headers, rows) {
-  const sourceRows = rows.length ? rows : [Array(headers.length).fill("")];
-  return chunkRows(sourceRows, 18).map((chunk, index) => `
-    ${index ? "" : `<div class="construction-section-title">${escapeHtml(title)}</div>`}
-    <table class="construction-log-table">
-      <thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead>
-      <tbody>${padRows(chunk, Math.max(5, chunk.length), headers.length).map(constructionRowHtml).join("")}</tbody>
-    </table>`);
-}
-
-function constructionPeopleBlocks(rows) {
-  const sourceRows = rows.length ? rows : [Array(6).fill("")];
-  return chunkRows(sourceRows, 14).map((chunk, index) => `
-    ${index ? "" : `<div class="construction-section-title">三、工地人員及機具管理（含約定之出工人數及機具使用情形及數量）：</div>`}
-    <table class="construction-people-table">
-      <thead><tr><th>工別</th><th>本日人數</th><th>累計人數</th><th>機具名稱</th><th>本日使用數量</th><th>累計使用數量</th></tr></thead>
-      <tbody>${padRows(chunk, Math.max(5, chunk.length), 6).map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody>
-    </table>`);
+function constructionTableBlock(section, rows, includeTitle) {
+  return `
+    ${includeTitle ? `<div class="construction-section-title">${escapeHtml(section.title)}</div>` : ""}
+    <table class="${escapeHtml(section.tableClass)}">
+      <thead><tr>${section.headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead>
+      <tbody>${padRows(rows, Math.max(section.minRows, rows.length), section.headers.length).map(constructionRowHtml).join("")}</tbody>
+    </table>`;
 }
 
 function safetyCheckMarks(key) {
@@ -901,26 +967,32 @@ function safetyCheckMarks(key) {
 }
 
 function constructionFixedSectionsBlock() {
-  return `<div class="construction-text-row">四、本日施工項目是否有須依「營造業專業工程特定施工項目應置之技術士種類、比率或人數標準表」規定應設置之技術士：</div>
-    <div class="construction-safety">
+  return constructionFixedSectionBlocks().join("");
+}
+
+function constructionFixedSectionBlocks() {
+  return [
+    `<div class="construction-text-row">四、本日施工項目是否有須依「營造業專業工程特定施工項目應置之技術士種類、比率或人數標準表」規定應設置之技術士：</div>`,
+    `<div class="construction-safety">
       <p>五、工地職業安全衛生事項之督導、公共環境與安全之維護及其他工地行政事務(註3)：</p>
       <p>(一)施工前檢查事項：</p>
       <p>1. 實施勤前教育(含工地預防災變及危害告知)：${safetyCheckMarks("briefing")}</p>
       <p>2. 確認新進勞工是否提報勞工保險(或其他商業保險)資料及安全衛生教育訓練紀錄：${safetyCheckMarks("insurance")}</p>
       <p>3. 檢查勞工個人防護具：${safetyCheckMarks("protection")}</p>
       <p>(二)其他事項：${escapeHtml(state.constructionSafetyNotes || "")}</p>
-    </div>
-    <div class="construction-fill-row">六、施工取樣試驗紀錄：</div>
-    <div class="construction-fill-row">七、通知協力廠商辦理事項：${escapeHtml(state.instructions)}</div>
-    <div class="construction-important-row">八、重要事項紀錄(註4)：${escapeHtml(state.notes)}</div>
-    <div class="construction-sign-row">簽章：【工地主任】(註5)：${escapeHtml(state.siteManager)}</div>
-    <div class="construction-notes">
+    </div>`,
+    `<div class="construction-fill-row">六、施工取樣試驗紀錄：</div>`,
+    `<div class="construction-fill-row">七、通知協力廠商辦理事項：${escapeHtml(state.instructions)}</div>`,
+    `<div class="construction-important-row">八、重要事項紀錄(註4)：${escapeHtml(state.notes)}</div>`,
+    `<div class="construction-sign-row">簽章：【工地主任】(註5)：${escapeHtml(state.siteManager)}</div>`,
+    `<div class="construction-notes">
       <p>註：1. 依營造業法第三十二條第一項第二款規定，工地主任應按日填報施工日誌；本表檢送地方主管建築機關備查。</p>
       <p>2. 本施工日誌格式僅供參考，原則應包含上開欄位，各主管建築機關得依工程性質及實際需要增訂之。</p>
       <p>3. 施工前檢查事項所列工作應由依職業安全衛生管理辦法規定所置職業安全衛生管理人員於每日施工前辦理。</p>
       <p>4. 重要事項紀錄包含起造人及監造人指示、工地緊急異常狀況通報處理情形及其他重要事項。</p>
       <p>5. 本工程依營造業法規定須置工地主任者，由工地主任簽章。</p>
-    </div>`;
+    </div>`
+  ];
 }
 
 function constructionRowHtml(row) {
