@@ -437,6 +437,19 @@ textarea {
     #dfe7e5;
 }
 
+.preview-pane.is-pannable {
+  cursor: grab;
+}
+
+.preview-pane.is-panning {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.preview-pane.is-panning .report-page {
+  pointer-events: none;
+}
+
 .preview-topbar {
   display: flex;
   justify-content: space-between;
@@ -454,6 +467,14 @@ textarea {
   top: 0;
   z-index: 3;
   backdrop-filter: blur(12px);
+}
+
+.preview-topbar {
+  cursor: auto;
+}
+
+.preview-topbar button {
+  cursor: pointer;
 }
 
 .zoom-controls {
