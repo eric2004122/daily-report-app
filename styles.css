@@ -631,7 +631,7 @@ textarea {
   height: 297mm;
   background: var(--paper);
   box-shadow: var(--shadow);
-  padding: 6mm 9mm 7mm;
+  padding: 6mm 9mm 12mm;
   color: #000;
   font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
   position: relative;
@@ -643,6 +643,15 @@ textarea {
 .report-page table {
   width: 100%;
   border-collapse: collapse;
+}
+
+.report-page thead {
+  display: table-header-group;
+}
+
+.report-page tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 .report-title {
@@ -728,6 +737,8 @@ textarea {
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .report-block {
@@ -737,6 +748,14 @@ textarea {
 
 .report-block + .report-block {
   margin-top: 0.8mm;
+}
+
+.report-sign-block {
+  margin-top: auto;
+}
+
+.report-block + .report-sign-block {
+  margin-top: auto;
 }
 
 .labor-grid {
@@ -806,8 +825,10 @@ textarea {
 }
 
 .footer {
-  flex: 0 0 auto;
-  margin-top: 2mm;
+  position: absolute;
+  left: 9mm;
+  right: 9mm;
+  bottom: 4mm;
   display: flex;
   justify-content: space-between;
   gap: 6mm;
@@ -869,6 +890,30 @@ textarea {
   gap: 6px;
 }
 
+.boundary-notice {
+  margin: 10px 12px 0;
+  border: 1px solid #cbd6d3;
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: #f7faf9;
+  color: #31403e;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.boundary-notice.is-ok {
+  border-left-color: var(--accent);
+}
+
+.boundary-notice.is-warning {
+  border-color: #d9a441;
+  border-left-color: #b97912;
+  background: #fff8e7;
+  color: #5b3a08;
+  font-weight: 700;
+}
+
 .mode-btn {
   min-height: 30px;
   padding: 0 12px;
@@ -887,13 +932,14 @@ textarea {
 
 .construction-log-page {
   display: block;
-  padding: 17mm 13mm 10mm;
+  padding: 17mm 13mm 16mm;
   font-family: "DFKai-SB", "BiauKai", "KaiTi", "PMingLiU", serif;
   letter-spacing: 0;
 }
 
 .construction-log-continuation-page {
   padding-top: 12mm;
+  padding-bottom: 16mm;
 }
 
 .construction-log-page table {
@@ -1079,7 +1125,9 @@ textarea {
 }
 
 .construction-page-number {
-  margin-top: 2mm;
+  position: absolute;
+  right: 13mm;
+  bottom: 5mm;
   font-size: 10pt;
   text-align: right;
 }
@@ -1321,7 +1369,8 @@ textarea {
 
   .app-header,
   .editor,
-  .preview-topbar {
+  .preview-topbar,
+  .boundary-notice {
     display: none !important;
   }
 

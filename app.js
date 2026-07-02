@@ -758,6 +758,7 @@ function renderPreview() {
         return reportPage(photoBody, pageNumber, totalPages, "photo-report-body");
       })
       .join("")}`;
+  updateA4BoundaryNotice();
 }
 
 function renderConstructionLogPreview() {
@@ -768,6 +769,7 @@ function renderConstructionLogPreview() {
         ${constructionLogHtml(page, index + 1, pages.length)}
       </article>`)
     .join("");
+  updateA4BoundaryNotice();
 }
 
 function reportQuantityGroups(groups, type) {
@@ -967,7 +969,7 @@ function constructionLogHtml(page, pageNumber, totalPages) {
   return `
     ${headerHtml}
     ${page.blocks.join("")}
-    ${totalPages > 1 ? `<div class="construction-page-number">第 ${pageNumber} / ${totalPages} 頁</div>` : ""}`;
+    <div class="construction-page-number">第 ${pageNumber} / ${totalPages} 頁</div>`;
 }
 
 function constructionTableBlock(section, rows, includeTitle) {
@@ -1150,7 +1152,7 @@ function buildMainReportBlocks(reportLaborGroups, reportMaterialGroups) {
     <div class="sign-row">
       <div>工地主任：${escapeHtml(state.siteManager)}</div>
       <div>製表：${escapeHtml(state.preparedBy)}</div>
-    </div>`)
+    </div>`, "report-sign-block")
   ];
 
   return fillShortDailyReport(blocks, footerBlocks);
@@ -1187,8 +1189,9 @@ function numberedLinesWithOffset(lines, offset) {
   return lines.map((line, index) => `${offset + index + 1}.${line}`).join("\n");
 }
 
-function reportBlock(content) {
-  return `<div class="report-block">${content}</div>`;
+function reportBlock(content, className = "") {
+  const classes = ["report-block", className].filter(Boolean).join(" ");
+  return `<div class="${classes}">${content}</div>`;
 }
 
 function groupGridBlocks(title, groups, gridClass, columns, maxRowsPerTable) {
@@ -1349,6 +1352,37 @@ function reportPage(bodyHtml, pageNumber, totalPages, bodyClass = "") {
       <div class="report-body ${bodyClass}">${bodyHtml}</div>
       <footer class="footer"><span>${escapeHtml(state.meta.sourceUrl)}</span><span>${pageNumber}/${totalPages}</span></footer>
     </article>`;
+}
+
+function updateA4BoundaryNotice() {
+  const notice = document.getElementById("a4BoundaryNotice");
+  if (!notice) return [];
+
+  const issues = findA4BoundaryIssues();
+  notice.classList.toggle("is-warning", issues.length > 0);
+  notice.classList.toggle("is-ok", issues.length === 0);
+  notice.textContent = issues.length
+    ? `A4 邊界檢查：第 ${issues.join("、")} 頁可能超出安全區，下載前請先調整文字或表格。`
+    : "A4 邊界檢查：目前沒有偵測到裁切。";
+
+  return issues;
+}
+
+function findA4BoundaryIssues() {
+  return Array.from(document.querySelectorAll(".report-page"))
+    .map((page, index) => ({ page, pageNumber: index + 1 }))
+    .filter(({ page }) => pageHasBoundaryIssue(page))
+    .map(({ pageNumber }) => pageNumber);
+}
+
+function pageHasBoundaryIssue(page) {
+  const body = page.querySelector(".report-body");
+  const pageOverflows = page.scrollHeight > page.clientHeight + 1 || page.scrollWidth > page.clientWidth + 1;
+  const bodyOverflows = body
+    ? body.scrollHeight > body.clientHeight + 1 || body.scrollWidth > body.clientWidth + 1
+    : false;
+
+  return pageOverflows || bodyOverflows;
 }
 
 function chunkPhotos(photos, size) {
@@ -1595,6 +1629,11 @@ function pushCsvGroupRow(groups, title, item, today, total, unit = "") {
 
 function downloadPdf() {
   renderPreview();
+  const boundaryIssues = updateA4BoundaryNotice();
+  if (boundaryIssues.length) {
+    const shouldPrint = confirm(`A4 邊界檢查提醒：第 ${boundaryIssues.join("、")} 頁可能會被裁切。\n\n仍要繼續下載 PDF 嗎？`);
+    if (!shouldPrint) return;
+  }
   window.print();
 }
 
