@@ -286,8 +286,8 @@ function renderEditor() {
   renderMetaEditor();
   renderLineEditor("todayWorkList", state.workToday, renderEditor);
   renderLineEditor("tomorrowWorkList", state.workTomorrow, renderEditor);
-  renderGroupEditor("laborEditor", state.laborGroups, renderEditor);
-  renderGroupEditor("materialEditor", state.materialGroups, renderEditor);
+  renderGroupEditor("laborEditor", state.laborGroups, renderEditor, { showUnit: false });
+  renderGroupEditor("materialEditor", state.materialGroups, renderEditor, { showUnit: true });
   renderConstructionItemEditor();
   renderPhotoEditor();
 
@@ -356,7 +356,8 @@ function renderLineEditor(id, lines, rerender) {
   });
 }
 
-function renderGroupEditor(id, groups, rerender) {
+function renderGroupEditor(id, groups, rerender, options = {}) {
+  const showUnit = Boolean(options.showUnit);
   const mount = document.getElementById(id);
   mount.innerHTML = groups
     .map((group, groupIndex) => {
@@ -365,7 +366,7 @@ function renderGroupEditor(id, groups, rerender) {
           return `
             <tr>
               <td class="name-cell"><input data-row-name="${groupIndex}:${rowIndex}" value="${escapeHtml(row[0])}" /></td>
-              <td class="unit-cell"><input data-row-unit="${groupIndex}:${rowIndex}" value="${escapeHtml(row[3] || "")}" /></td>
+              ${showUnit ? `<td class="unit-cell"><input data-row-unit="${groupIndex}:${rowIndex}" value="${escapeHtml(row[3] || "")}" /></td>` : ""}
               <td><input data-row-today="${groupIndex}:${rowIndex}" value="${escapeHtml(row[1])}" /></td>
               <td><input data-row-total="${groupIndex}:${rowIndex}" value="${escapeHtml(row[2])}" /></td>
               <td><button class="row-btn" data-remove-row="${groupIndex}:${rowIndex}" type="button">刪</button></td>
@@ -380,7 +381,7 @@ function renderGroupEditor(id, groups, rerender) {
             <button class="small-btn" data-add-row="${groupIndex}" type="button">新增列</button>
           </h3>
           <table class="edit-table">
-            <thead><tr><th>名稱</th><th>單位</th><th>本日</th><th>累計</th><th></th></tr></thead>
+            <thead><tr><th>名稱</th>${showUnit ? "<th>單位</th>" : ""}<th>本日</th><th>累計</th><th></th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>`;
@@ -1331,7 +1332,7 @@ function buildCsvRows() {
 
   state.laborGroups.forEach((group) => {
     group.rows.forEach((row) => {
-      rows.push([`本日出工數-${group.title}`, row[0], row[3] || "", "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
+      rows.push([`本日出工數-${group.title}`, row[0], "", "", row[1], cumulativeWithToday(row[1], row[2]), ""]);
     });
   });
 
