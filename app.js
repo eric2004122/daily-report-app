@@ -992,8 +992,8 @@ function quantityRowHasAnyValue(row) {
   return today !== 0;
 }
 
-function rowUnit(row, fallbackName = "") {
-  return String(row?.[3] ?? "").trim() || guessUnit(fallbackName || row?.[0]);
+function rowUnit(row) {
+  return String(row?.[3] ?? "").trim();
 }
 
 function padRows(rows, count, columns) {
@@ -1016,17 +1016,6 @@ function cleanMaterialName(value) {
 
 function cleanLaborName(value) {
   return String(value ?? "").replace(/[（(].*?[）)]/g, "").trim();
-}
-
-function guessUnit(value) {
-  const text = String(value ?? "");
-  const match = text.match(/[（(]([^）)]+)[）)]/);
-  if (match) return match[1];
-  if (text.includes("連續壁")) return "單元";
-  if (text.includes("混凝土")) return "M³";
-  if (text.includes("鐵板")) return "片";
-  if (text.includes("續接器")) return "個";
-  return "";
 }
 
 function updateZeroLaborToggle() {
