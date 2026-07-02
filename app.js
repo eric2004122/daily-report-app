@@ -778,10 +778,12 @@ function reportQuantityGroups(groups, type) {
 
   return groups.map((group) => ({
     ...group,
-    rows: group.rows.map((row) => {
-      if (showAllRows || shouldShowRow(row)) return row;
-      return blankQuantityRow(row);
-    })
+    rows: showAllRows
+      ? group.rows
+      : [
+          ...group.rows.filter((row) => shouldShowRow(row)),
+          ...group.rows.filter((row) => !shouldShowRow(row)).map((row) => blankQuantityRow(row))
+        ]
   }));
 }
 
