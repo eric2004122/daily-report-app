@@ -41,6 +41,11 @@ const defaultState = {
     ["", "", "", "", "", ""]
   ],
   constructionSafetyNotes: "",
+  constructionSafetyChecks: {
+    briefing: "",
+    insurance: "",
+    protection: ""
+  },
   laborGroups: [
     {
       title: "契約工",
@@ -293,6 +298,7 @@ function renderEditor() {
   document.getElementById("constructionSafetyNotes").value = state.constructionSafetyNotes || "";
   document.getElementById("siteManager").value = state.siteManager;
   document.getElementById("preparedBy").value = state.preparedBy;
+  updateConstructionSafetyChecks();
   updateZeroLaborToggle();
   updateZeroMaterialToggle();
 }
@@ -888,14 +894,19 @@ function constructionPeopleBlocks(rows) {
     </table>`);
 }
 
+function safetyCheckMarks(key) {
+  const value = state.constructionSafetyChecks?.[key] || "";
+  return `${value === "有" ? "■" : "□"}有　${value === "無" ? "■" : "□"}無`;
+}
+
 function constructionFixedSectionsBlock() {
   return `<div class="construction-text-row">四、本日施工項目是否有須依「營造業專業工程特定施工項目應置之技術士種類、比率或人數標準表」規定應設置之技術士：</div>
     <div class="construction-safety">
       <p>五、工地職業安全衛生事項之督導、公共環境與安全之維護及其他工地行政事務(註3)：</p>
       <p>(一)施工前檢查事項：</p>
-      <p>1. 實施勤前教育(含工地預防災變及危害告知)：□有　□無</p>
-      <p>2. 確認新進勞工是否提報勞工保險(或其他商業保險)資料及安全衛生教育訓練紀錄：□有　□無</p>
-      <p>3. 檢查勞工個人防護具：□有　□無</p>
+      <p>1. 實施勤前教育(含工地預防災變及危害告知)：${safetyCheckMarks("briefing")}</p>
+      <p>2. 確認新進勞工是否提報勞工保險(或其他商業保險)資料及安全衛生教育訓練紀錄：${safetyCheckMarks("insurance")}</p>
+      <p>3. 檢查勞工個人防護具：${safetyCheckMarks("protection")}</p>
       <p>(二)其他事項：${escapeHtml(state.constructionSafetyNotes || "")}</p>
     </div>
     <div class="construction-fill-row">六、施工取樣試驗紀錄：</div>
@@ -1031,6 +1042,16 @@ function updateZeroMaterialToggle() {
   const isShowing = Boolean(state.displayOptions?.showZeroMaterialRows);
   button.textContent = isShowing ? "隱藏零材料" : "顯示零材料";
   button.setAttribute("aria-pressed", String(isShowing));
+}
+
+function updateConstructionSafetyChecks() {
+  document.querySelectorAll("[data-safety-check]").forEach((row) => {
+    const key = row.dataset.safetyCheck;
+    const value = state.constructionSafetyChecks?.[key] || "";
+    row.querySelectorAll("input[type='radio']").forEach((input) => {
+      input.checked = input.value === value;
+    });
+  });
 }
 
 function updatePreviewModeToggle() {
@@ -1303,6 +1324,9 @@ function buildCsvRows() {
   (state.constructionItems || []).forEach((row) => {
     rows.push(["施工日誌-按圖施工概況", row[0] || "", row[1] || "", row[2] || "", row[3] || "", row[4] || "", row[5] || ""]);
   });
+  rows.push(["施工日誌-施工前檢查事項", "實施勤前教育", "", "", "", "", state.constructionSafetyChecks?.briefing || ""]);
+  rows.push(["施工日誌-施工前檢查事項", "提報勞工保險及安全衛生教育訓練紀錄", "", "", "", "", state.constructionSafetyChecks?.insurance || ""]);
+  rows.push(["施工日誌-施工前檢查事項", "檢查勞工個人防護具", "", "", "", "", state.constructionSafetyChecks?.protection || ""]);
   rows.push(["施工日誌-工安衛生與行政事項", "其他事項", "", "", "", "", state.constructionSafetyNotes || ""]);
 
   state.laborGroups.forEach((group) => {
@@ -1431,6 +1455,19 @@ function stateFromCsv(rows) {
       workTomorrow[csvRowIndex(item, workTomorrow.length)] = note;
     } else if (category === "施工日誌-按圖施工概況") {
       constructionItems.push([item, unit, contract, today, total, note]);
+    } else if (category === "施工日誌-施工前檢查事項") {
+      const safetyKeyMap = {
+        實施勤前教育: "briefing",
+        提報勞工保險及安全衛生教育訓練紀錄: "insurance",
+        檢查勞工個人防護具: "protection"
+      };
+      const key = safetyKeyMap[item];
+      if (key) {
+        nextState.constructionSafetyChecks = {
+          ...nextState.constructionSafetyChecks,
+          [key]: note === "無" ? "無" : note === "有" ? "有" : ""
+        };
+      }
     } else if (category === "施工日誌-工安衛生與行政事項" && item === "其他事項") {
       nextState.constructionSafetyNotes = note;
     } else if (category.startsWith("本日出工數-")) {
@@ -1500,6 +1537,17 @@ function attachGlobalEvents() {
   });
   wireInput(document.getElementById("constructionSafetyNotes"), (value) => {
     state.constructionSafetyNotes = value;
+  });
+  document.querySelectorAll("[data-safety-check] input[type='radio']").forEach((input) => {
+    input.addEventListener("change", () => {
+      const key = input.closest("[data-safety-check]").dataset.safetyCheck;
+      state.constructionSafetyChecks = {
+        ...state.constructionSafetyChecks,
+        [key]: input.value
+      };
+      persist();
+      renderPreview();
+    });
   });
   wireInput(document.getElementById("siteManager"), (value) => {
     state.siteManager = value;
