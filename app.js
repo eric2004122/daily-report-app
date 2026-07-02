@@ -1732,12 +1732,28 @@ function attachGlobalEvents() {
 }
 
 function setPreviewZoom(value) {
+  const oldZoom = previewZoom || 1;
+  const pane = document.querySelector(".preview-pane");
+  const centerBefore = pane
+    ? {
+        x: (pane.scrollLeft + pane.clientWidth / 2) / oldZoom,
+        y: (pane.scrollTop + pane.clientHeight / 2) / oldZoom
+      }
+    : null;
+
   previewZoom = Math.min(1.6, Math.max(0.38, Math.round(value * 10) / 10));
   const scaler = document.getElementById("previewScaler");
   const label = document.getElementById("zoomLabel");
-  scaler.style.transform = `scale(${previewZoom})`;
-  scaler.style.width = `${100 / previewZoom}%`;
+  scaler.style.transform = "";
+  scaler.style.width = "100%";
+  scaler.style.zoom = previewZoom;
   label.textContent = `${Math.round(previewZoom * 100)}%`;
+
+  if (pane && centerBefore) {
+    pane.scrollLeft = Math.max(0, centerBefore.x * previewZoom - pane.clientWidth / 2);
+    pane.scrollTop = Math.max(0, centerBefore.y * previewZoom - pane.clientHeight / 2);
+  }
+
   updatePreviewPanState();
 }
 

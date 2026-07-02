@@ -512,7 +512,7 @@ textarea {
 }
 
 .preview-scaler {
-  transform-origin: top center;
+  transform-origin: top left;
   transition: transform 120ms ease;
 }
 
@@ -1214,6 +1214,7 @@ textarea {
     overflow: visible;
     padding: 0;
     transform: none !important;
+    zoom: 1 !important;
   }
 
   .report-page {
