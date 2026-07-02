@@ -14,10 +14,10 @@
           <p>依參考 PDF 版型建立 A4 日報，可填資料、放照片並下載 PDF。</p>
         </div>
         <div class="toolbar" aria-label="工具列">
-          <button id="downloadPdfBtn" type="button" title="下載或另存成 PDF">下載 PDF</button>
-          <button id="saveBtn" type="button" title="下載 Excel 可開啟的 CSV 資料">下載 CSV</button>
-          <button id="importBtn" type="button" title="匯入 CSV 或舊版 JSON 備份">匯入資料</button>
-          <button id="resetBtn" type="button" title="回復預設範本">重設</button>
+          <button id="downloadPdfBtn" class="primary-action" type="button" title="下載或另存成 PDF">下載 PDF</button>
+          <button id="saveBtn" class="secondary-action" type="button" title="下載 Excel 可開啟的 CSV 資料">下載 CSV</button>
+          <button id="importBtn" class="secondary-action" type="button" title="匯入 CSV 或舊版 JSON 備份">匯入資料</button>
+          <button id="resetBtn" class="danger-action" type="button" title="回復預設範本">重設</button>
           <input id="importFile" type="file" accept=".csv,text/csv,application/json" hidden />
         </div>
       </header>
