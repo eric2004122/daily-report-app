@@ -726,18 +726,19 @@ function shouldShowMaterialRow(row) {
   return shouldShowQuantityRow(row);
 }
 
+function blankQuantityRow(row) {
+  const columns = Math.max(Array.isArray(row) ? row.length : 0, 3);
+  return Array(columns).fill("");
+}
+
 function renderPreview() {
   if (previewMode === "constructionLog") {
     renderConstructionLogPreview();
     return;
   }
 
-  const reportLaborGroups = state.laborGroups
-    .map((group) => ({ ...group, rows: group.rows.filter((row) => shouldShowLaborRow(row)) }))
-    .filter((group) => group.rows.length);
-  const reportMaterialGroups = state.materialGroups
-    .map((group) => ({ ...group, rows: group.rows.filter((row) => shouldShowMaterialRow(row)) }))
-    .filter((group) => group.rows.length);
+  const reportLaborGroups = reportQuantityGroups(state.laborGroups, "labor");
+  const reportMaterialGroups = reportQuantityGroups(state.materialGroups, "material");
   const photosForReport = state.photos.filter((photo) => photo.image);
   const photoPages = chunkPhotos(photosForReport, 6);
   const reportBlocks = buildMainReportBlocks(reportLaborGroups, reportMaterialGroups);
@@ -767,6 +768,21 @@ function renderConstructionLogPreview() {
         ${constructionLogHtml(page, index + 1, pages.length)}
       </article>`)
     .join("");
+}
+
+function reportQuantityGroups(groups, type) {
+  const showAllRows = type === "labor"
+    ? Boolean(state.displayOptions?.showZeroLaborRows)
+    : Boolean(state.displayOptions?.showZeroMaterialRows);
+  const shouldShowRow = type === "labor" ? shouldShowLaborRow : shouldShowMaterialRow;
+
+  return groups.map((group) => ({
+    ...group,
+    rows: group.rows.map((row) => {
+      if (showAllRows || shouldShowRow(row)) return row;
+      return blankQuantityRow(row);
+    })
+  }));
 }
 
 function constructionLogPages() {
@@ -1176,7 +1192,9 @@ function reportBlock(content) {
 function groupGridBlocks(title, groups, gridClass, columns, maxRowsPerTable) {
   const tableBlocks = [];
   groups.forEach((group) => {
-    chunkRows(group.rows, maxRowsPerTable).forEach((rows, chunkIndex) => {
+    const rowChunks = chunkRows(group.rows, maxRowsPerTable);
+    const chunks = rowChunks.length ? rowChunks : [[]];
+    chunks.forEach((rows, chunkIndex) => {
       tableBlocks.push(
         groupTable({
           ...group,
