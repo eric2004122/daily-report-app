@@ -196,6 +196,32 @@ button.row-btn:hover {
   line-height: 1.45;
 }
 
+.editor-group-label {
+  margin: 18px -18px 0;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: #eef5f3;
+  color: #173b36;
+}
+
+.editor-group-label strong {
+  display: block;
+  font-size: 15px;
+}
+
+.editor-group-label span {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.construction-editor-section {
+  background: #fbfdfc;
+}
+
 .construction-safety-template {
   border: 1px solid var(--border);
   background: #fff;

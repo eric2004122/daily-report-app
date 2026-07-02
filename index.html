@@ -81,18 +81,23 @@
             <div id="materialEditor" class="data-editor"></div>
           </section>
 
-          <section class="panel-section">
+          <div class="editor-group-label">
+            <strong>施工日誌專用填寫</strong>
+            <span>以下欄位只會套用到施工日誌，不會影響日報表。</span>
+          </div>
+
+          <section class="panel-section construction-editor-section">
             <div class="section-title-row">
-              <h2>施工日誌：按圖施工概況</h2>
+              <h2>一、按圖施工概況</h2>
               <button class="small-btn" id="addConstructionItem" type="button">新增列</button>
             </div>
-            <p class="section-hint">此區只用於施工日誌第一大項，不會影響日報表。</p>
+            <p class="section-hint">填寫施工日誌第一大項：依施工計畫書執行按圖施工概況。</p>
             <div id="constructionItemEditor" class="data-editor"></div>
           </section>
 
-          <section class="panel-section">
-            <h2>五、工地職業安全衛生事項之督導、公共環境與安全之維護及其他工地行政事務(註3)</h2>
-            <p class="section-hint">此區只用於施工日誌第五大項，不會影響日報表的重要記事。</p>
+          <section class="panel-section construction-editor-section">
+            <h2>工地職業安全衛生事項之督導、公共環境與安全之維護及其他工地行政事務(註3)</h2>
+            <p class="section-hint">填寫施工日誌第五大項。正式 PDF 預覽仍會放在「五、」段落。</p>
             <div class="construction-safety-template" aria-label="施工前檢查事項">
               <strong>（一）施工前檢查事項：</strong>
               <div class="safety-check-row" data-safety-check="briefing">
