@@ -203,6 +203,17 @@ const metaFieldDefs = [
   ["sourceUrl", "頁尾網址"]
 ];
 const dateMetaFields = new Set(["reportDate", "startDate", "completionDate"]);
+const projectTemplateFields = [
+  "title",
+  "projectName",
+  "contractor",
+  "permitNo",
+  "startDate",
+  "completionDate",
+  "plannedProgress",
+  "actualProgress",
+  "sourceUrl"
+];
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -232,6 +243,80 @@ function persist() {
   } catch {
     console.warn("Local storage is full. The report still works, but photos may not persist after refresh.");
   }
+}
+
+function applyQuickTemplate(type) {
+  const template = clone(defaultState);
+
+  if (type === "project") {
+    projectTemplateFields.forEach((key) => {
+      state.meta[key] = template.meta[key] || "";
+    });
+    state.weather = { ...state.weather, ...template.weather };
+  } else if (type === "work") {
+    state.workToday = mergeTemplateLines(state.workToday, template.workToday);
+    state.workTomorrow = mergeTemplateLines(state.workTomorrow, template.workTomorrow);
+  } else if (type === "material") {
+    state.materialGroups = mergeTemplateGroups(state.materialGroups, template.materialGroups, { copyUnit: true });
+  } else if (type === "machine") {
+    const machineGroups = template.laborGroups.filter((group) => group.title.includes("機具"));
+    state.laborGroups = mergeTemplateGroups(state.laborGroups, machineGroups, { copyUnit: false });
+  }
+
+  persist();
+  renderEditor();
+  renderPreview();
+}
+
+function mergeTemplateLines(currentLines, templateLines) {
+  const merged = currentLines.filter((line) => String(line).trim());
+  const existing = new Set(merged.map(templateKey));
+
+  templateLines.forEach((line) => {
+    const key = templateKey(line);
+    if (!key || existing.has(key)) return;
+    merged.push(line);
+    existing.add(key);
+  });
+
+  return merged.length ? merged : [""];
+}
+
+function mergeTemplateGroups(currentGroups, templateGroups, options = {}) {
+  const nextGroups = clone(currentGroups);
+
+  templateGroups.forEach((templateGroup) => {
+    let targetGroup = nextGroups.find((group) => templateKey(group.title) === templateKey(templateGroup.title));
+    if (!targetGroup) {
+      targetGroup = { title: templateGroup.title, rows: [] };
+      nextGroups.push(targetGroup);
+    }
+
+    const existingRows = new Map(targetGroup.rows.map((row) => [templateKey(row[0]), row]));
+    templateGroup.rows.forEach((templateRow) => {
+      const name = String(templateRow[0] || "").trim();
+      const key = templateKey(name);
+      if (!key) return;
+
+      const existingRow = existingRows.get(key);
+      if (existingRow) {
+        if (options.copyUnit && !String(existingRow[3] || "").trim()) existingRow[3] = templateRow[3] || "";
+        return;
+      }
+
+      const row = options.copyUnit
+        ? [name, "0", "0", templateRow[3] || ""]
+        : [name, "0", "0"];
+      targetGroup.rows.push(row);
+      existingRows.set(key, row);
+    });
+  });
+
+  return nextGroups;
+}
+
+function templateKey(value) {
+  return String(value || "").trim().replace(/\s+/g, "").toLowerCase();
 }
 
 function escapeHtml(value) {
@@ -432,6 +517,28 @@ function renderGroupEditor(id, groups, rerender, options = {}) {
       persist();
       rerender();
       renderPreview();
+    });
+  });
+
+  enableEnterToNextInput(mount);
+}
+
+function enableEnterToNextInput(container) {
+  container.querySelectorAll("input").forEach((input) => {
+    input.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.isComposing) return;
+      event.preventDefault();
+
+      const inputs = Array.from(container.querySelectorAll("input")).filter((item) => {
+        return !item.disabled && item.type !== "hidden" && item.offsetParent !== null;
+      });
+      const currentIndex = inputs.indexOf(input);
+      const nextInput = inputs[currentIndex + (event.shiftKey ? -1 : 1)];
+
+      if (nextInput) {
+        nextInput.focus();
+        nextInput.select();
+      }
     });
   });
 }
@@ -1675,6 +1782,22 @@ function attachGlobalEvents() {
   });
   wireInput(document.getElementById("preparedBy"), (value) => {
     state.preparedBy = value;
+  });
+
+  document.getElementById("applyProjectTemplate").addEventListener("click", () => {
+    applyQuickTemplate("project");
+  });
+
+  document.getElementById("applyWorkTemplate").addEventListener("click", () => {
+    applyQuickTemplate("work");
+  });
+
+  document.getElementById("applyMaterialTemplate").addEventListener("click", () => {
+    applyQuickTemplate("material");
+  });
+
+  document.getElementById("applyMachineTemplate").addEventListener("click", () => {
+    applyQuickTemplate("machine");
   });
 
   document.getElementById("addTodayWork").addEventListener("click", () => {
