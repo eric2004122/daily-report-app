@@ -439,6 +439,16 @@ textarea {
   background: #eef7f5;
 }
 
+.template-status {
+  border: 1px solid #d6dfdc;
+  background: #f7faf9;
+  color: #40504d;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
 .line-row,
 .photo-row {
   display: grid;

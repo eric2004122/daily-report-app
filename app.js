@@ -247,43 +247,57 @@ function persist() {
 
 function applyQuickTemplate(type) {
   const template = clone(defaultState);
+  let message = "";
 
   if (type === "project") {
     projectTemplateFields.forEach((key) => {
       state.meta[key] = template.meta[key] || "";
     });
     state.weather = { ...state.weather, ...template.weather };
+    message = "工程資料模板已套用：已更新基本資料與天氣。";
   } else if (type === "work") {
-    state.workToday = mergeTemplateLines(state.workToday, template.workToday);
-    state.workTomorrow = mergeTemplateLines(state.workTomorrow, template.workTomorrow);
+    const todayResult = mergeTemplateLines(state.workToday, template.workToday);
+    const tomorrowResult = mergeTemplateLines(state.workTomorrow, template.workTomorrow);
+    state.workToday = todayResult.lines;
+    state.workTomorrow = tomorrowResult.lines;
+    message = `工項模板已套用：本日新增 ${todayResult.added} 筆，明日新增 ${tomorrowResult.added} 筆。`;
   } else if (type === "material") {
-    state.materialGroups = mergeTemplateGroups(state.materialGroups, template.materialGroups, { copyUnit: true });
+    const materialResult = mergeTemplateGroups(state.materialGroups, template.materialGroups, { copyUnit: true });
+    state.materialGroups = materialResult.groups;
+    message = `材料模板已套用：新增 ${materialResult.added} 筆${materialResult.updated ? `，補上單位 ${materialResult.updated} 筆` : ""}。`;
   } else if (type === "machine") {
     const machineGroups = template.laborGroups.filter((group) => group.title.includes("機具"));
-    state.laborGroups = mergeTemplateGroups(state.laborGroups, machineGroups, { copyUnit: false });
+    const machineResult = mergeTemplateGroups(state.laborGroups, machineGroups, { copyUnit: false });
+    state.laborGroups = machineResult.groups;
+    message = `機具模板已套用：新增 ${machineResult.added} 筆。`;
   }
 
   persist();
   renderEditor();
   renderPreview();
+  updateTemplateStatus(message);
 }
 
 function mergeTemplateLines(currentLines, templateLines) {
   const merged = currentLines.filter((line) => String(line).trim());
   const existing = new Set(merged.map(templateKey));
+  let added = 0;
 
   templateLines.forEach((line) => {
     const key = templateKey(line);
     if (!key || existing.has(key)) return;
     merged.push(line);
     existing.add(key);
+    added += 1;
   });
 
-  return merged.length ? merged : [""];
+  return { lines: merged.length ? merged : [""], added };
 }
 
 function mergeTemplateGroups(currentGroups, templateGroups, options = {}) {
   const nextGroups = clone(currentGroups);
+  let added = 0;
+  let updated = 0;
 
   templateGroups.forEach((templateGroup) => {
     let targetGroup = nextGroups.find((group) => templateKey(group.title) === templateKey(templateGroup.title));
@@ -300,7 +314,10 @@ function mergeTemplateGroups(currentGroups, templateGroups, options = {}) {
 
       const existingRow = existingRows.get(key);
       if (existingRow) {
-        if (options.copyUnit && !String(existingRow[3] || "").trim()) existingRow[3] = templateRow[3] || "";
+        if (options.copyUnit && !String(existingRow[3] || "").trim() && String(templateRow[3] || "").trim()) {
+          existingRow[3] = templateRow[3] || "";
+          updated += 1;
+        }
         return;
       }
 
@@ -309,14 +326,33 @@ function mergeTemplateGroups(currentGroups, templateGroups, options = {}) {
         : [name, "0", "0"];
       targetGroup.rows.push(row);
       existingRows.set(key, row);
+      added += 1;
     });
   });
 
-  return nextGroups;
+  return { groups: nextGroups, added, updated };
 }
 
 function templateKey(value) {
   return String(value || "").trim().replace(/\s+/g, "").toLowerCase();
+}
+
+function updateTemplateStatus(message = "") {
+  const status = document.getElementById("templateStatus");
+  if (!status) return;
+
+  if (message) {
+    status.textContent = message.includes("新增")
+      ? `${message} 若新增 0 筆，代表常用項目已在表格內。`
+      : message;
+    return;
+  }
+
+  const machineRows = defaultState.laborGroups
+    .filter((group) => group.title.includes("機具"))
+    .reduce((total, group) => total + group.rows.length, 0);
+  const materialRows = defaultState.materialGroups.reduce((total, group) => total + group.rows.length, 0);
+  status.textContent = `目前模板：本日工項 ${defaultState.workToday.length} 筆、明日工項 ${defaultState.workTomorrow.length} 筆、材料 ${materialRows} 筆、機具 ${machineRows} 筆。`;
 }
 
 function escapeHtml(value) {
@@ -386,6 +422,7 @@ function renderEditor() {
   updateConstructionSafetyChecks();
   updateZeroLaborToggle();
   updateZeroMaterialToggle();
+  updateTemplateStatus();
 }
 
 function renderMetaEditor() {
