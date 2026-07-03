@@ -1164,9 +1164,6 @@ function updatePreviewModeToggle() {
 }
 
 function buildMainReportBlocks(reportLaborGroups, reportMaterialGroups) {
-  const blocks = [...workBlocks()];
-  blocks.push(...groupGridBlocks("本日出工數", reportLaborGroups, "labor-grid", 3, 12));
-  blocks.push(...groupGridBlocks("本日進場材料", reportMaterialGroups, "material-grid", 4, 10));
   const footerBlocks = [
     ...noteBlocks("重要記事", state.notes),
     ...noteBlocks("交辦事項", state.instructions),
@@ -1177,7 +1174,30 @@ function buildMainReportBlocks(reportLaborGroups, reportMaterialGroups) {
     </div>`, "report-sign-block")
   ];
 
+  if (isDailyReportEmpty()) {
+    return [
+      ...workBlocks(),
+      blankQuantitySectionBlock("本日出工數", state.laborGroups, "labor-grid", 3, 12),
+      blankQuantitySectionBlock("本日進場材料", state.materialGroups, "material-grid", 4, 10),
+      ...footerBlocks
+    ];
+  }
+
+  const blocks = [...workBlocks()];
+  blocks.push(...groupGridBlocks("本日出工數", reportLaborGroups, "labor-grid", 3, 12));
+  blocks.push(...groupGridBlocks("本日進場材料", reportMaterialGroups, "material-grid", 4, 10));
+
   return fillShortDailyReport(blocks, footerBlocks);
+}
+
+function isDailyReportEmpty() {
+  return !state.workToday.some((line) => String(line).trim())
+    && !state.workTomorrow.some((line) => String(line).trim())
+    && !String(state.notes || "").trim()
+    && !String(state.instructions || "").trim()
+    && !state.photos.some((photo) => photo.image)
+    && !state.laborGroups.some((group) => group.rows.some((row) => quantityRowHasAnyValue(row)))
+    && !state.materialGroups.some((group) => group.rows.some((row) => quantityRowHasAnyValue(row)));
 }
 
 function workBlocks() {
@@ -1242,6 +1262,17 @@ function groupGridBlocks(title, groups, gridClass, columns, maxRowsPerTable) {
       <div class="report-section-title">${continuedTitle}</div>
       <div class="${gridClass}">${paddedTables.join("")}</div>`);
   });
+}
+
+function blankQuantitySectionBlock(title, groups, gridClass, columns, maxRowsPerTable) {
+  const tables = groups.slice(0, columns).map((group) => groupTable({ title: group.title, rows: [] }, maxRowsPerTable));
+  while (tables.length < columns) {
+    tables.push(groupTable({ title: "", rows: [] }, maxRowsPerTable));
+  }
+
+  return reportBlock(`
+    <div class="report-section-title">${title}</div>
+    <div class="${gridClass}">${tables.join("")}</div>`);
 }
 
 function blankGridBlock(gridClass, columns, maxRowsPerTable) {
